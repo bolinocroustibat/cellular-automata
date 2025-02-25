@@ -23,8 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# IDE
-.vscode/
-
 # Environment variables
 .env
