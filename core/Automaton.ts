@@ -9,7 +9,7 @@ import { EntropyAutomaton } from "../2d/entropy/entropy"
 import { ImmigrationAutomaton } from "../2d/immigration/immigration"
 import { LangtonAutomaton } from "../2d/langton/langton"
 import { QuadLifeAutomaton } from "../2d/quadlife/quadlife"
-import { CCA3D } from "../3d/cca_3d"
+import { CCA3D } from "../3d/cca_3d/cca_3d"
 import type { Settings } from "../types/Settings"
 import { moviePalettes } from "../utils/fetchMoviePalettes"
 
