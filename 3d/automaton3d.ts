@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import type { Cell, Cell3D } from "../types/Cell"
 import type { RGB } from "../types/RGB"
 import { pickColors } from "../utils/pickColors"
+import { ShaderManager } from "./ShaderManager"
 
 export abstract class Automaton3D {
 	protected canvasEl: HTMLCanvasElement
@@ -29,6 +30,13 @@ export abstract class Automaton3D {
 	private animationFrameId?: number
 	private animationFrameCount = 0
 	protected renderInterval: NodeJS.Timer
+
+	// Shader-based rendering
+	private shaderManager: ShaderManager
+	private instanceBuffer: THREE.InstancedBufferGeometry
+	private instancePositions: Float32Array
+	private instanceColors: Float32Array
+	private instanceMesh: THREE.Mesh
 
 	constructor(
 		canvasEl: HTMLCanvasElement,
@@ -79,10 +87,53 @@ export abstract class Automaton3D {
 			this.isUserInteracting = true
 		})
 
+		// Initialize shader manager
+		this.shaderManager = new ShaderManager(this.renderer, this.cubeDimension)
+		this.shaderManager.createStateTextures()
+
+		// Create instance buffer
+		this.initializeInstanceBuffer()
+
 		this.setInitialState()
 		this.renderer.render(this.scene, this.camera)
 		this.setRandomRotationDirections()
 		this.animate()
+	}
+
+	private initializeInstanceBuffer(): void {
+		// Create base cube geometry
+		const geometry = new THREE.BoxGeometry(1, 1, 1)
+		this.instanceBuffer = new THREE.InstancedBufferGeometry()
+		this.instanceBuffer.setAttribute("position", geometry.getAttribute("position"))
+		this.instanceBuffer.setAttribute("normal", geometry.getAttribute("normal"))
+
+		// Create instance data
+		const instanceCount = this.cubeDimension * this.cubeDimension * this.cubeDimension
+		this.instancePositions = new Float32Array(instanceCount * 3)
+		this.instanceColors = new Float32Array(instanceCount * 3)
+
+		// Set up instance attributes
+		this.instanceBuffer.setAttribute(
+			"instancePosition",
+			new THREE.InstancedBufferAttribute(this.instancePositions, 3)
+		)
+		this.instanceBuffer.setAttribute(
+			"instanceColor",
+			new THREE.InstancedBufferAttribute(this.instanceColors, 3)
+		)
+
+		// Create material with shader
+		const material = new THREE.ShaderMaterial({
+			vertexShader: this.shaderManager.getVertexShader(),
+			fragmentShader: this.shaderManager.getFragmentShader(),
+			uniforms: {
+				cellSize: { value: this.cellSize },
+			},
+		})
+
+		// Create instanced mesh
+		this.instanceMesh = new THREE.Mesh(this.instanceBuffer, material)
+		this.scene.add(this.instanceMesh)
 	}
 
 	clear = (): void => {
@@ -95,23 +146,19 @@ export abstract class Automaton3D {
 			clearInterval(this.renderInterval)
 		}
 
-		if (this.cellGroup) {
-			this.cellGroup.traverse((object) => {
-				if (object instanceof THREE.Mesh) {
-					object.geometry.dispose()
-					if (Array.isArray(object.material)) {
-						for (const material of object.material) {
-							material.dispose()
-						}
-					} else {
-						object.material.dispose()
-					}
-				}
-			})
+		if (this.instanceMesh) {
+			this.instanceMesh.geometry.dispose()
+			if (this.instanceMesh.material instanceof THREE.Material) {
+				this.instanceMesh.material.dispose()
+			}
 		}
 
 		if (this.scene) {
-			this.scene.remove(this.cellGroup)
+			this.scene.remove(this.instanceMesh)
+		}
+
+		if (this.shaderManager) {
+			this.shaderManager.dispose()
 		}
 
 		if (this.renderer) {
@@ -120,10 +167,7 @@ export abstract class Automaton3D {
 			if (rendererDomElement.parentElement) {
 				const newCanvas = document.createElement("canvas")
 				newCanvas.id = "canvas"
-				rendererDomElement.parentElement.replaceChild(
-					newCanvas,
-					rendererDomElement,
-				)
+				rendererDomElement.parentElement.replaceChild(newCanvas, rendererDomElement)
 			}
 		}
 	}
@@ -140,12 +184,9 @@ export abstract class Automaton3D {
 		this.animationFrameCount++
 
 		if (!this.isUserInteracting) {
-			this.cellGroup.rotation.x +=
-				this.initialRotationSpeed * this.rotationDirectionX
-			this.cellGroup.rotation.y +=
-				this.initialRotationSpeed * this.rotationDirectionY
-			this.cellGroup.rotation.z +=
-				this.initialRotationSpeed * this.rotationDirectionZ
+			this.instanceMesh.rotation.x += this.initialRotationSpeed * this.rotationDirectionX
+			this.instanceMesh.rotation.y += this.initialRotationSpeed * this.rotationDirectionY
+			this.instanceMesh.rotation.z += this.initialRotationSpeed * this.rotationDirectionZ
 		}
 
 		this.renderer.render(this.scene, this.camera)
@@ -165,21 +206,37 @@ export abstract class Automaton3D {
 	protected abstract update(): void
 
 	protected setInitialState = (): void => {
+		let instanceIndex = 0
 		for (let z = 0; z < this.cubeDimension; z++) {
-			this.state[z] = []
-			this.bufferState[z] = []
 			for (let y = 0; y < this.cubeDimension; y++) {
-				this.state[z][y] = []
-				this.bufferState[z][y] = []
 				for (let x = 0; x < this.cubeDimension; x++) {
-					const randomColor =
-						this.colors[Math.floor(Math.random() * this.colors.length)]
-					const cell = this.createCell(randomColor, x, y, z, false)
-					this.state[z][y][x] = cell
-					this.bufferState[z][y][x] = { ...cell }
+					const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)]
+					
+					// Set instance position
+					const posX = (x - this.halfCubeDimension) * this.cellSize
+					const posY = (y - this.halfCubeDimension) * this.cellSize
+					const posZ = (z - this.halfCubeDimension) * this.cellSize
+					
+					this.instancePositions[instanceIndex * 3] = posX
+					this.instancePositions[instanceIndex * 3 + 1] = posY
+					this.instancePositions[instanceIndex * 3 + 2] = posZ
+					
+					// Set instance color
+					this.instanceColors[instanceIndex * 3] = randomColor.colorRgb[0] / 255
+					this.instanceColors[instanceIndex * 3 + 1] = randomColor.colorRgb[1] / 255
+					this.instanceColors[instanceIndex * 3 + 2] = randomColor.colorRgb[2] / 255
+					
+					instanceIndex++
 				}
 			}
 		}
+
+		// Update instance buffer attributes
+		this.instanceBuffer.attributes.instancePosition.needsUpdate = true
+		this.instanceBuffer.attributes.instanceColor.needsUpdate = true
+
+		// Update state texture
+		this.shaderManager.updateStateTexture(this.instanceColors)
 	}
 
 	protected createCell(

@@ -18,6 +18,9 @@ export class ShaderManager {
     private shaderPrograms: Map<string, ShaderProgram>
     private textures: Map<string, TexturePair>
     private cubeDimension: number
+    private vertexShaderSource: string
+    private fragmentShaderSource: string
+    private computeShaderSource: string
 
     constructor(renderer: THREE.WebGLRenderer, cubeDimension: number) {
         const canvas = renderer.domElement
@@ -34,12 +37,31 @@ export class ShaderManager {
         this.initializeShaderPrograms()
     }
 
+    public getVertexShader(): string {
+        return this.vertexShaderSource
+    }
+
+    public getFragmentShader(): string {
+        return this.fragmentShaderSource
+    }
+
     private async loadShader(type: ShaderType): Promise<string> {
         const response = await fetch(`/3d/shaders/${type}.glsl`)
         if (!response.ok) {
             throw new Error(`Failed to load ${type} shader`)
         }
-        return response.text()
+        const source = await response.text()
+        
+        // Store shader source
+        if (type === "vertex") {
+            this.vertexShaderSource = source
+        } else if (type === "fragment") {
+            this.fragmentShaderSource = source
+        } else {
+            this.computeShaderSource = source
+        }
+        
+        return source
     }
 
     private compileShader(source: string, type: ShaderType): WebGLShader {
