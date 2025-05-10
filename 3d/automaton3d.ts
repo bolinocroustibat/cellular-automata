@@ -51,57 +51,37 @@ export abstract class Automaton3D {
 		
 		// Calculate camera distance based on cube size
 		const totalSize = this.cubeDimension * this.cellSize
-		const cameraDistance = totalSize * 2 // Position camera further back
 		
-		this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000) // Wider FOV
-		this.camera.position.set(cameraDistance, cameraDistance, cameraDistance)
+		this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
+		this.camera.position.set(200, 200, 300)
 		this.camera.lookAt(0, 0, 0)
 
-		// Add orbit controls
-		this.controls = new OrbitControls(this.camera, this.canvasEl)
-		this.controls.enableDamping = true
-		this.controls.dampingFactor = 0.05
-		this.controls.minDistance = totalSize
-		this.controls.maxDistance = totalSize * 4
-		this.controls.enablePan = true
-		this.controls.enableZoom = true
-		this.controls.autoRotate = true
-		this.controls.autoRotateSpeed = 1.0
-
-		// Create a new canvas element
-		const newCanvas = document.createElement('canvas')
-		newCanvas.width = this.width
-		newCanvas.height = this.height
-		
-		// Replace the old canvas with the new one
-		if (this.canvasEl && this.canvasEl.parentNode) {
-			this.canvasEl.parentNode.replaceChild(newCanvas, this.canvasEl)
-		}
-		this.canvasEl = newCanvas
-
-		// Initialize renderer with the new canvas
+		// Initialize renderer
 		this.renderer = new THREE.WebGLRenderer({ 
 			antialias: true,
-			canvas: this.canvasEl,
 			alpha: true
 		})
 		this.renderer.setSize(this.width, this.height)
-		this.renderer.setClearColor(0x000000, 0) // Transparent background
+		this.renderer.setClearColor(0x000000, 0)
+
+		if (this.canvasEl) {
+			this.canvasEl.replaceWith(this.renderer.domElement)
+		}
+
+		// Add orbit controls
+		this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+		this.controls.enableDamping = true
+		this.controls.dampingFactor = 0.05
+		this.controls.rotateSpeed = 0.5
+		this.controls.autoRotate = true
+		this.controls.autoRotateSpeed = 1.0
 
 		// Debug: Check if WebGL context exists
 		const gl = this.renderer.getContext()
 		console.log("WebGL context:", gl)
 
 		// Debug: Check if canvas was replaced
-		console.log("Canvas parent after replacement:", this.canvasEl.parentElement)
-
-		// Add grid helper
-		// const gridHelper = new THREE.GridHelper(totalSize * 2, 20)
-		// this.scene.add(gridHelper)
-
-		// Add axes helper
-		// const axesHelper = new THREE.AxesHelper(totalSize)
-		// this.scene.add(axesHelper)
+		console.log("Canvas parent after replacement:", this.renderer.domElement.parentElement)
 
 		// Initialize the cube
 		this.initializeCube()
