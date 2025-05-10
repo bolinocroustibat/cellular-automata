@@ -1,7 +1,7 @@
 import { nextCellColorId } from "../../utils/nextCellColorId"
-import { Automaton1D } from "../automaton1d"
+import { Automaton1DWebGL } from "../automaton1d_webgl"
 
-export class CCA1D extends Automaton1D {
+export class CCA1D extends Automaton1DWebGL {
 	protected setInitialState(): void {
 		// Random initialization for CCA
 		if (!this.state) this.state = []
@@ -31,10 +31,8 @@ export class CCA1D extends Automaton1D {
 				successorNeighboursCount >= 1 && successorNeighbor
 					? successorNeighbor
 					: this.state[x]
-
-			// Render directly to the canvas to avoid another loop
-			this.fillPixel(this.state[x].colorRgb, x, line)
 		}
 		this.state = newState
+		this.render(line)
 	}
 }
