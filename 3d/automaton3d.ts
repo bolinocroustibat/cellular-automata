@@ -33,7 +33,7 @@ export abstract class Automaton3D {
 		this.width = width
 		this.height = height
 		this.cubeDimension = resolution
-		this.cellSize = Math.min(width, height) / resolution / 4
+		this.cellSize = Math.min(width, height) / resolution / 6
 		this.colors = pickColors(colorsCount, paletteColors)
 		this.halfCubeDimension = this.cubeDimension / 2
 		this.colorMap = new Map(this.colors.map((color) => [color.id, color]))
@@ -65,6 +65,8 @@ export abstract class Automaton3D {
 		this.controls.maxDistance = totalSize * 4
 		this.controls.enablePan = true
 		this.controls.enableZoom = true
+		this.controls.autoRotate = true
+		this.controls.autoRotateSpeed = 1.0
 
 		// Create a new canvas element
 		const newCanvas = document.createElement('canvas')
@@ -80,9 +82,11 @@ export abstract class Automaton3D {
 		// Initialize renderer with the new canvas
 		this.renderer = new THREE.WebGLRenderer({ 
 			antialias: true,
-			canvas: this.canvasEl
+			canvas: this.canvasEl,
+			alpha: true
 		})
 		this.renderer.setSize(this.width, this.height)
+		this.renderer.setClearColor(0x000000, 0) // Transparent background
 
 		// Debug: Check if WebGL context exists
 		const gl = this.renderer.getContext()
@@ -91,19 +95,13 @@ export abstract class Automaton3D {
 		// Debug: Check if canvas was replaced
 		console.log("Canvas parent after replacement:", this.canvasEl.parentElement)
 
-		// Add a test cube to verify rendering
-		const testGeometry = new THREE.BoxGeometry(50, 50, 50)
-		const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-		const testCube = new THREE.Mesh(testGeometry, testMaterial)
-		this.scene.add(testCube)
-
 		// Add grid helper
-		const gridHelper = new THREE.GridHelper(totalSize * 2, 20)
-		this.scene.add(gridHelper)
+		// const gridHelper = new THREE.GridHelper(totalSize * 2, 20)
+		// this.scene.add(gridHelper)
 
 		// Add axes helper
-		const axesHelper = new THREE.AxesHelper(totalSize)
-		this.scene.add(axesHelper)
+		// const axesHelper = new THREE.AxesHelper(totalSize)
+		// this.scene.add(axesHelper)
 
 		// Initialize the cube
 		this.initializeCube()
@@ -133,7 +131,9 @@ export abstract class Automaton3D {
 		geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
 		const material = new THREE.MeshBasicMaterial({
-			vertexColors: true
+			vertexColors: true,
+			transparent: true,
+			opacity: 0.4
 		})
 
 		// Create instance data
@@ -158,10 +158,11 @@ export abstract class Automaton3D {
 			for (let y = 0; y < this.cubeDimension; y++) {
 				for (let z = 0; z < this.cubeDimension; z++) {
 					const color = this.colors[Math.floor(Math.random() * this.colors.length)]
+					const spacing = this.cellSize * 1.2 // Add 20% spacing between cells
 					const position = new THREE.Vector3(
-						(x - this.halfCubeDimension) * this.cellSize,
-						(y - this.halfCubeDimension) * this.cellSize,
-						(z - this.halfCubeDimension) * this.cellSize
+						(x - this.halfCubeDimension) * spacing,
+						(y - this.halfCubeDimension) * spacing,
+						(z - this.halfCubeDimension) * spacing
 					)
 
 					// Set instance matrix
