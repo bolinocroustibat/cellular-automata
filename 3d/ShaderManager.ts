@@ -18,31 +18,49 @@ export class ShaderManager {
     private shaderPrograms: Map<string, ShaderProgram>
     private textures: Map<string, TexturePair>
     private cubeDimension: number
-    private vertexShaderSource: string
-    private fragmentShaderSource: string
     private computeShaderSource: string
+    private hasComputeSupport: boolean
 
     constructor(renderer: THREE.WebGLRenderer, cubeDimension: number) {
         const canvas = renderer.domElement
-        this.gl = canvas.getContext("webgl2") as WebGL2RenderingContext
-        if (!this.gl) {
+        const gl = canvas.getContext("webgl2", {
+            antialias: true,
+            alpha: true,
+            preserveDrawingBuffer: true,
+        }) as WebGL2RenderingContext
+        if (!gl) {
             throw new Error("WebGL2 not supported")
         }
 
+        this.gl = gl
         this.shaderPrograms = new Map()
         this.textures = new Map()
         this.cubeDimension = cubeDimension
 
-        // Initialize shader programs
-        this.initializeShaderPrograms()
+        // Check for compute shader support
+        const ext = gl.getExtension('EXT_compute_shader')
+        this.hasComputeSupport = !!ext
+        if (!this.hasComputeSupport) {
+            console.warn("Compute shaders not supported, falling back to CPU computation")
+        }
     }
 
-    public getVertexShader(): string {
-        return this.vertexShaderSource
-    }
+    public async initialize(): Promise<void> {
+        try {
+            // Load compute shader source
+            this.computeShaderSource = await this.loadShader("compute")
 
-    public getFragmentShader(): string {
-        return this.fragmentShaderSource
+            // Initialize compute program if supported
+            if (this.hasComputeSupport) {
+                const computeProgram = this.createProgram(
+                    this.compileShader(this.computeShaderSource, "compute")
+                )
+                this.shaderPrograms.set("compute", computeProgram)
+            }
+        } catch (error) {
+            console.error("Failed to initialize shader manager:", error)
+            throw error
+        }
     }
 
     private async loadShader(type: ShaderType): Promise<string> {
@@ -50,63 +68,40 @@ export class ShaderManager {
         if (!response.ok) {
             throw new Error(`Failed to load ${type} shader`)
         }
-        const source = await response.text()
-        
-        // Store shader source
-        if (type === "vertex") {
-            this.vertexShaderSource = source
-        } else if (type === "fragment") {
-            this.fragmentShaderSource = source
-        } else {
-            this.computeShaderSource = source
-        }
-        
-        return source
+        return await response.text()
     }
 
     private compileShader(source: string, type: ShaderType): WebGLShader {
-        const shaderType = type === "vertex"
-            ? this.gl.VERTEX_SHADER
-            : type === "fragment"
-            ? this.gl.FRAGMENT_SHADER
-            : 0x91B9 // COMPUTE_SHADER constant from WebGL2
-        const shader = this.gl.createShader(shaderType)
+        const gl = this.gl
+        let shaderType: number
+
+        switch (type) {
+            case "compute":
+                if (!this.hasComputeSupport) {
+                    throw new Error("Compute shaders not supported")
+                }
+                // Use the extension's constant for compute shader type
+                shaderType = (gl as any).COMPUTE_SHADER
+                break
+            default:
+                throw new Error(`Unknown shader type: ${type}`)
+        }
+
+        const shader = gl.createShader(shaderType)
         if (!shader) {
             throw new Error(`Failed to create ${type} shader`)
         }
 
-        this.gl.shaderSource(shader, source)
-        this.gl.compileShader(shader)
+        gl.shaderSource(shader, source)
+        gl.compileShader(shader)
 
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            const info = this.gl.getShaderInfoLog(shader)
-            this.gl.deleteShader(shader)
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            const info = gl.getShaderInfoLog(shader)
+            gl.deleteShader(shader)
             throw new Error(`Failed to compile ${type} shader: ${info}`)
         }
 
         return shader
-    }
-
-    private async initializeShaderPrograms(): Promise<void> {
-        // Load and compile shaders
-        const [vertexSource, fragmentSource, computeSource] = await Promise.all([
-            this.loadShader("vertex"),
-            this.loadShader("fragment"),
-            this.loadShader("compute"),
-        ])
-
-        // Create render program
-        const renderProgram = this.createProgram(
-            this.compileShader(vertexSource, "vertex"),
-            this.compileShader(fragmentSource, "fragment")
-        )
-        this.shaderPrograms.set("render", renderProgram)
-
-        // Create compute program
-        const computeProgram = this.createProgram(
-            this.compileShader(computeSource, "compute")
-        )
-        this.shaderPrograms.set("compute", computeProgram)
     }
 
     private createProgram(...shaders: WebGLShader[]): ShaderProgram {
@@ -126,10 +121,8 @@ export class ShaderManager {
             throw new Error(`Failed to link shader program: ${info}`)
         }
 
-        // Get uniforms and attributes
+        // Get uniforms
         const uniforms: { [key: string]: WebGLUniformLocation } = {}
-        const attributes: { [key: string]: number } = {}
-
         const numUniforms = this.gl.getProgramParameter(
             program,
             this.gl.ACTIVE_UNIFORMS
@@ -144,31 +137,20 @@ export class ShaderManager {
             }
         }
 
-        const numAttributes = this.gl.getProgramParameter(
-            program,
-            this.gl.ACTIVE_ATTRIBUTES
-        )
-        for (let i = 0; i < numAttributes; i++) {
-            const info = this.gl.getActiveAttrib(program, i)
-            if (info) {
-                const location = this.gl.getAttribLocation(program, info.name)
-                attributes[info.name] = location
-            }
-        }
-
-        return { program, uniforms, attributes }
+        return { program, uniforms, attributes: {} }
     }
 
     public createStateTextures(): void {
-        const size = this.cubeDimension * this.cubeDimension
-        const data = new Float32Array(size * 4) // RGBA format
+        // Calculate size based on instance data (3 floats per cell for RGB)
+        const size = this.cubeDimension * this.cubeDimension * this.cubeDimension * 3
+        const data = new Float32Array(size)
 
         // Create current and next state textures
         const currentTexture = new THREE.DataTexture(
             data,
             this.cubeDimension,
-            this.cubeDimension,
-            THREE.RGBAFormat,
+            this.cubeDimension * this.cubeDimension,
+            THREE.RGBFormat,
             THREE.FloatType
         )
         currentTexture.needsUpdate = true
@@ -176,8 +158,8 @@ export class ShaderManager {
         const nextTexture = new THREE.DataTexture(
             data,
             this.cubeDimension,
-            this.cubeDimension,
-            THREE.RGBAFormat,
+            this.cubeDimension * this.cubeDimension,
+            THREE.RGBFormat,
             THREE.FloatType
         )
         nextTexture.needsUpdate = true
@@ -191,7 +173,11 @@ export class ShaderManager {
             throw new Error("State textures not initialized")
         }
 
-        stateTextures.current.image.data.set(data)
+        const textureData = stateTextures.current.image.data as Float32Array
+        if (textureData.length !== data.length) {
+            throw new Error(`Texture data size mismatch: expected ${textureData.length}, got ${data.length}. Cube dimension: ${this.cubeDimension}`)
+        }
+        textureData.set(data)
         stateTextures.current.needsUpdate = true
     }
 
@@ -223,9 +209,9 @@ export class ShaderManager {
     }
 
     public setUniform(name: string, value: any): void {
-        const program = this.shaderPrograms.get("render")
+        const program = this.shaderPrograms.get("compute")
         if (!program) {
-            throw new Error("Render program not found")
+            throw new Error("Compute program not found")
         }
 
         const location = program.uniforms[name]
@@ -266,4 +252,16 @@ export class ShaderManager {
         })
         this.textures.clear()
     }
-} 
+
+    public dispatchCompute(x: number, y: number, z: number): void {
+        if (!this.hasComputeSupport) {
+            throw new Error("Compute shaders not supported")
+        }
+        // @ts-ignore - WebGL2 compute shader support
+        this.gl.dispatchCompute(x, y, z)
+    }
+
+    public getGL(): WebGL2RenderingContext {
+        return this.gl
+    }
+}

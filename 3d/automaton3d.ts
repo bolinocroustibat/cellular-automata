@@ -1,42 +1,25 @@
 import * as THREE from "three"
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import type { Cell, Cell3D } from "../types/Cell"
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
+import type { Cell } from "../types/Cell"
 import type { RGB } from "../types/RGB"
 import { pickColors } from "../utils/pickColors"
-import { ShaderManager } from "./ShaderManager"
 
 export abstract class Automaton3D {
 	protected canvasEl: HTMLCanvasElement
 	protected width: number
 	protected height: number
 	protected cubeDimension: number
-	protected readonly halfCubeDimension: number
 	protected cellSize: number
-	protected cellFilling: number
 	protected colors: Cell[]
-	protected readonly colorMap: Map<number, Cell>
-	protected state: Cell3D[][][]
-	protected bufferState: Cell3D[][][]
-	private initialRotationSpeed: number
-	private rotationDirectionX: number
-	private rotationDirectionY: number
-	private rotationDirectionZ: number
+	protected halfCubeDimension: number
+	protected colorMap: Map<number, Cell>
 	protected scene: THREE.Scene
-	protected cellGroup: THREE.Group
 	protected camera: THREE.PerspectiveCamera
-	protected controls: OrbitControls
-	private isUserInteracting = false
 	protected renderer: THREE.WebGLRenderer
-	private animationFrameId?: number
-	private animationFrameCount = 0
-	protected renderInterval: NodeJS.Timer
-
-	// Shader-based rendering
-	private shaderManager: ShaderManager
-	private instanceBuffer: THREE.InstancedBufferGeometry
-	private instancePositions: Float32Array
-	private instanceColors: Float32Array
-	private instanceMesh: THREE.Mesh
+	protected instanceMesh: THREE.InstancedMesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>
+	protected state: Cell[][][]
+	protected controls: OrbitControls
+	protected renderInterval: NodeJS.Timeout | null
 
 	constructor(
 		canvasEl: HTMLCanvasElement,
@@ -46,157 +29,216 @@ export abstract class Automaton3D {
 		colorsCount: number,
 		paletteColors?: RGB[],
 	) {
-		this.clear()
-
 		this.canvasEl = canvasEl
 		this.width = width
 		this.height = height
 		this.cubeDimension = resolution
 		this.cellSize = Math.min(width, height) / resolution / 4
-		this.cellFilling = 1.0
 		this.colors = pickColors(colorsCount, paletteColors)
-		this.state = []
-		this.bufferState = []
-		this.initialRotationSpeed = 0.0001
-
 		this.halfCubeDimension = this.cubeDimension / 2
 		this.colorMap = new Map(this.colors.map((color) => [color.id, color]))
+		
+		// Initialize state array
+		this.state = Array(this.cubeDimension).fill(null).map(() =>
+			Array(this.cubeDimension).fill(null).map(() =>
+				Array(this.cubeDimension).fill(null)
+			)
+		)
 
+		// Basic scene setup
 		this.scene = new THREE.Scene()
-		this.cellGroup = new THREE.Group()
-		this.cellGroup.position.set(0, 0, 0)
-		this.scene.add(this.cellGroup)
-
-		this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
-		this.camera.position.set(200, 200, 300)
+		this.scene.background = new THREE.Color(0x000000)
+		
+		// Calculate camera distance based on cube size
+		const totalSize = this.cubeDimension * this.cellSize
+		const cameraDistance = totalSize * 2 // Position camera further back
+		
+		this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000) // Wider FOV
+		this.camera.position.set(cameraDistance, cameraDistance, cameraDistance)
 		this.camera.lookAt(0, 0, 0)
 
-		this.renderer = new THREE.WebGLRenderer()
-		this.renderer.setSize(this.width, this.height)
-
-		if (this.canvasEl) {
-			this.canvasEl.replaceWith(this.renderer.domElement)
-		}
-
-		this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+		// Add orbit controls
+		this.controls = new OrbitControls(this.camera, this.canvasEl)
 		this.controls.enableDamping = true
 		this.controls.dampingFactor = 0.05
-		this.controls.rotateSpeed = 0.5
+		this.controls.minDistance = totalSize
+		this.controls.maxDistance = totalSize * 4
+		this.controls.enablePan = true
+		this.controls.enableZoom = true
 
-		this.controls.addEventListener("start", () => {
-			this.isUserInteracting = true
+		// Create a new canvas element
+		const newCanvas = document.createElement('canvas')
+		newCanvas.width = this.width
+		newCanvas.height = this.height
+		
+		// Replace the old canvas with the new one
+		if (this.canvasEl && this.canvasEl.parentNode) {
+			this.canvasEl.parentNode.replaceChild(newCanvas, this.canvasEl)
+		}
+		this.canvasEl = newCanvas
+
+		// Initialize renderer with the new canvas
+		this.renderer = new THREE.WebGLRenderer({ 
+			antialias: true,
+			canvas: this.canvasEl
+		})
+		this.renderer.setSize(this.width, this.height)
+
+		// Debug: Check if WebGL context exists
+		const gl = this.renderer.getContext()
+		console.log("WebGL context:", gl)
+
+		// Debug: Check if canvas was replaced
+		console.log("Canvas parent after replacement:", this.canvasEl.parentElement)
+
+		// Add a test cube to verify rendering
+		const testGeometry = new THREE.BoxGeometry(50, 50, 50)
+		const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+		const testCube = new THREE.Mesh(testGeometry, testMaterial)
+		this.scene.add(testCube)
+
+		// Add grid helper
+		const gridHelper = new THREE.GridHelper(totalSize * 2, 20)
+		this.scene.add(gridHelper)
+
+		// Add axes helper
+		const axesHelper = new THREE.AxesHelper(totalSize)
+		this.scene.add(axesHelper)
+
+		// Initialize the cube
+		this.initializeCube()
+		this.setInitialState()
+
+		// Debug: Check scene contents
+		console.log("Scene children:", this.scene.children.length)
+		this.scene.children.forEach(child => {
+			console.log("Scene child:", child.type, child)
 		})
 
-		// Initialize shader manager
-		this.shaderManager = new ShaderManager(this.renderer, this.cubeDimension)
-		this.shaderManager.createStateTextures()
-
-		// Create instance buffer
-		this.initializeInstanceBuffer()
-
-		this.setInitialState()
-		this.renderer.render(this.scene, this.camera)
-		this.setRandomRotationDirections()
+		// Start animation loop
 		this.animate()
 	}
 
-	private initializeInstanceBuffer(): void {
+	private initializeCube(): void {
 		// Create base cube geometry
-		const geometry = new THREE.BoxGeometry(1, 1, 1)
-		this.instanceBuffer = new THREE.InstancedBufferGeometry()
-		this.instanceBuffer.setAttribute("position", geometry.getAttribute("position"))
-		this.instanceBuffer.setAttribute("normal", geometry.getAttribute("normal"))
+		const geometry = new THREE.BoxGeometry(this.cellSize, this.cellSize, this.cellSize)
+		
+		// Set vertex colors for the base geometry
+		const colors = new Float32Array(geometry.attributes.position.count * 3)
+		for (let i = 0; i < colors.length; i += 3) {
+			colors[i] = 1     // R
+			colors[i + 1] = 1 // G
+			colors[i + 2] = 1 // B
+		}
+		geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+
+		const material = new THREE.MeshBasicMaterial({
+			vertexColors: true
+		})
 
 		// Create instance data
 		const instanceCount = this.cubeDimension * this.cubeDimension * this.cubeDimension
-		this.instancePositions = new Float32Array(instanceCount * 3)
-		this.instanceColors = new Float32Array(instanceCount * 3)
-
-		// Set up instance attributes
-		this.instanceBuffer.setAttribute(
-			"instancePosition",
-			new THREE.InstancedBufferAttribute(this.instancePositions, 3)
-		)
-		this.instanceBuffer.setAttribute(
-			"instanceColor",
-			new THREE.InstancedBufferAttribute(this.instanceColors, 3)
-		)
-
-		// Create material with shader
-		const material = new THREE.ShaderMaterial({
-			vertexShader: this.shaderManager.getVertexShader(),
-			fragmentShader: this.shaderManager.getFragmentShader(),
-			uniforms: {
-				cellSize: { value: this.cellSize },
-			},
+		console.log("Creating cube with:", {
+			cellSize: this.cellSize,
+			cubeDimension: this.cubeDimension,
+			instanceCount: instanceCount
 		})
 
-		// Create instanced mesh
-		this.instanceMesh = new THREE.Mesh(this.instanceBuffer, material)
+		this.instanceMesh = new THREE.InstancedMesh(geometry, material, instanceCount)
 		this.scene.add(this.instanceMesh)
 	}
 
-	clear = (): void => {
-		if (this.animationFrameId) {
-			cancelAnimationFrame(this.animationFrameId)
-			this.animationFrameId = undefined
+	private setInitialState(): void {
+		const instanceCount = this.cubeDimension * this.cubeDimension * this.cubeDimension
+		let instanceIndex = 0
+
+		console.log("Setting initial state for", instanceCount, "instances")
+
+		for (let x = 0; x < this.cubeDimension; x++) {
+			for (let y = 0; y < this.cubeDimension; y++) {
+				for (let z = 0; z < this.cubeDimension; z++) {
+					const color = this.colors[Math.floor(Math.random() * this.colors.length)]
+					const position = new THREE.Vector3(
+						(x - this.halfCubeDimension) * this.cellSize,
+						(y - this.halfCubeDimension) * this.cellSize,
+						(z - this.halfCubeDimension) * this.cellSize
+					)
+
+					// Set instance matrix
+					const matrix = new THREE.Matrix4()
+					matrix.makeTranslation(position.x, position.y, position.z)
+					this.instanceMesh.setMatrixAt(instanceIndex, matrix)
+
+					// Set instance color
+					const colorVector = new THREE.Color()
+					colorVector.setRGB(
+						color.colorRgb[0] / 255,
+						color.colorRgb[1] / 255,
+						color.colorRgb[2] / 255
+					)
+					this.instanceMesh.setColorAt(instanceIndex, colorVector)
+
+					// Initialize state array
+					this.state[z][y][x] = color
+
+					instanceIndex++
+				}
+			}
 		}
 
-		if (this.renderInterval) {
-			clearInterval(this.renderInterval)
+		// Update instance buffer attributes
+		this.instanceMesh.instanceMatrix.needsUpdate = true
+		if (this.instanceMesh.instanceColor) {
+			this.instanceMesh.instanceColor.needsUpdate = true
+		}
+
+		console.log("Initial state set, rendering...")
+		this.renderer.render(this.scene, this.camera)
+	}
+
+	private animate(): void {
+		requestAnimationFrame(this.animate.bind(this))
+		this.controls.update()
+		this.renderer.render(this.scene, this.camera)
+	}
+
+	public clear(): void {
+		if (this.controls) {
+			this.controls.dispose()
 		}
 
 		if (this.instanceMesh) {
 			this.instanceMesh.geometry.dispose()
-			if (this.instanceMesh.material instanceof THREE.Material) {
-				this.instanceMesh.material.dispose()
-			}
-		}
-
-		if (this.scene) {
+			this.instanceMesh.material.dispose()
 			this.scene.remove(this.instanceMesh)
-		}
-
-		if (this.shaderManager) {
-			this.shaderManager.dispose()
 		}
 
 		if (this.renderer) {
 			this.renderer.dispose()
-			const rendererDomElement = this.renderer.domElement
-			if (rendererDomElement.parentElement) {
-				const newCanvas = document.createElement("canvas")
-				newCanvas.id = "canvas"
-				rendererDomElement.parentElement.replaceChild(newCanvas, rendererDomElement)
+			this.renderer.forceContextLoss()
+			this.renderer.domElement.remove()
+		}
+
+		// Clear scene
+		while(this.scene.children.length > 0) { 
+			const object = this.scene.children[0]
+			this.scene.remove(object)
+			if (object instanceof THREE.Mesh) {
+				object.geometry.dispose()
+				if (object.material instanceof THREE.Material) {
+					object.material.dispose()
+				}
 			}
 		}
 	}
 
-	private setRandomRotationDirections(): void {
-		this.rotationDirectionX = Math.random() < 0.5 ? 1 : -1
-		this.rotationDirectionY = Math.random() < 0.5 ? 1 : -1
-		this.rotationDirectionZ = Math.random() < 0.5 ? 1 : -1
-	}
-
-	private animate = (): void => {
-		this.animationFrameId = requestAnimationFrame(this.animate)
-		this.controls.update()
-		this.animationFrameCount++
-
-		if (!this.isUserInteracting) {
-			this.instanceMesh.rotation.x += this.initialRotationSpeed * this.rotationDirectionX
-			this.instanceMesh.rotation.y += this.initialRotationSpeed * this.rotationDirectionY
-			this.instanceMesh.rotation.z += this.initialRotationSpeed * this.rotationDirectionZ
-		}
-
-		this.renderer.render(this.scene, this.camera)
-	}
-
 	start = (stateUpdatesPerSecond: number): void => {
+		// Clear any existing interval
 		if (this.renderInterval) {
 			clearInterval(this.renderInterval)
 		}
 
+		// Set up periodic updates
 		const intervalMs = 1000 / stateUpdatesPerSecond
 		this.renderInterval = setInterval(() => {
 			this.update()
@@ -204,99 +246,6 @@ export abstract class Automaton3D {
 	}
 
 	protected abstract update(): void
-
-	protected setInitialState = (): void => {
-		let instanceIndex = 0
-		for (let z = 0; z < this.cubeDimension; z++) {
-			for (let y = 0; y < this.cubeDimension; y++) {
-				for (let x = 0; x < this.cubeDimension; x++) {
-					const randomColor = this.colors[Math.floor(Math.random() * this.colors.length)]
-					
-					// Set instance position
-					const posX = (x - this.halfCubeDimension) * this.cellSize
-					const posY = (y - this.halfCubeDimension) * this.cellSize
-					const posZ = (z - this.halfCubeDimension) * this.cellSize
-					
-					this.instancePositions[instanceIndex * 3] = posX
-					this.instancePositions[instanceIndex * 3 + 1] = posY
-					this.instancePositions[instanceIndex * 3 + 2] = posZ
-					
-					// Set instance color
-					this.instanceColors[instanceIndex * 3] = randomColor.colorRgb[0] / 255
-					this.instanceColors[instanceIndex * 3 + 1] = randomColor.colorRgb[1] / 255
-					this.instanceColors[instanceIndex * 3 + 2] = randomColor.colorRgb[2] / 255
-					
-					instanceIndex++
-				}
-			}
-		}
-
-		// Update instance buffer attributes
-		this.instanceBuffer.attributes.instancePosition.needsUpdate = true
-		this.instanceBuffer.attributes.instanceColor.needsUpdate = true
-
-		// Update state texture
-		this.shaderManager.updateStateTexture(this.instanceColors)
-	}
-
-	protected createCell(
-		colorObj: Cell,
-		x: number,
-		y: number,
-		z: number,
-		wireframe: boolean,
-	): Cell3D {
-		const geometry = new THREE.BoxGeometry(
-			this.cellSize * this.cellFilling,
-			this.cellSize * this.cellFilling,
-			this.cellSize * this.cellFilling,
-		)
-
-		const material = new THREE.MeshBasicMaterial({
-			transparent: true,
-			opacity: 0.1,
-			depthWrite: false,
-		})
-
-		const mesh = new THREE.Mesh(geometry, material)
-
-		if (wireframe) {
-			const wireframeGeometry = new THREE.EdgesGeometry(geometry)
-			const wireframeMaterial = new THREE.LineBasicMaterial({
-				color: 0xffffff,
-				transparent: true,
-				opacity: 0.2,
-			})
-			const wireframe = new THREE.LineSegments(
-				wireframeGeometry,
-				wireframeMaterial,
-			)
-			mesh.add(wireframe)
-		}
-
-		this.updateCellColor(mesh, colorObj.colorRgb)
-
-		const posX = (x - this.halfCubeDimension) * this.cellSize
-		const posY = (y - this.halfCubeDimension) * this.cellSize
-		const posZ = (z - this.halfCubeDimension) * this.cellSize
-
-		mesh.position.set(posX, posY, posZ)
-		this.cellGroup.add(mesh)
-
-		return {
-			...colorObj,
-			mesh,
-		}
-	}
-
-	protected updateCellColor(mesh: THREE.Mesh, colorRgb: number[]): void {
-		if (mesh.material instanceof THREE.Material) {
-			const r = colorRgb[0] / 255
-			const g = colorRgb[1] / 255
-			const b = colorRgb[2] / 255
-			mesh.material.color.setRGB(r, g, b)
-		}
-	}
 
 	protected getCellColor(x: number, y: number, z: number): Cell {
 		const modifiedX = (x + this.cubeDimension) % this.cubeDimension

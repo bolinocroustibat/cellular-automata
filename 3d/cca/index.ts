@@ -1,3 +1,4 @@
+import * as THREE from "three"
 import type { Cell } from "../../types/Cell"
 import type { RGB } from "../../types/RGB"
 import { nextCellColorId } from "../../utils/nextCellColorId"
@@ -19,34 +20,65 @@ export class CCA3D extends Automaton3D {
 		this.threshold = threshold
 	}
 
-	protected update = (): void => {
+	protected update(): void {
+		// Create temporary arrays for state update
+		const nextState = Array(this.cubeDimension).fill(null).map(() =>
+			Array(this.cubeDimension).fill(null).map(() =>
+				Array(this.cubeDimension).fill(null)
+			)
+		)
+
+		// Update each cell
 		for (let z = 0; z < this.cubeDimension; z++) {
 			for (let y = 0; y < this.cubeDimension; y++) {
 				for (let x = 0; x < this.cubeDimension; x++) {
-					const currentCell = this.state[z][y][x]
-					const nextColorId = nextCellColorId(currentCell, this.colors)
-					const successorNeighboursCount = this.getNeighbours(x, y, z).filter(
-						(neighbour) => neighbour.id === nextColorId,
-					).length
-
-					if (successorNeighboursCount >= this.threshold) {
-						const newColor = this.colorMap.get(nextColorId) ?? currentCell
-
-						this.bufferState[z][y][x] = {
-							...newColor,
-							mesh: currentCell.mesh,
+					const currentCell = this.getCellColor(x, y, z)
+					const nextColorId = (currentCell.id + 1) % this.colors.length
+					const nextColor = this.colorMap.get(nextColorId)!
+					
+					// Count neighbors with next color
+					let count = 0
+					const neighbors = this.getNeighbours(x, y, z)
+					for (const neighbor of neighbors) {
+						if (neighbor.id === nextColorId) {
+							count++
 						}
+					}
 
-						if (newColor.id !== currentCell.id && currentCell.mesh) {
-							this.updateCellColor(currentCell.mesh, newColor.colorRgb)
-						}
+					// Update state based on threshold
+					if (count >= this.threshold) {
+						nextState[z][y][x] = nextColor
 					} else {
-						this.bufferState[z][y][x] = currentCell
+						nextState[z][y][x] = currentCell
 					}
 				}
 			}
 		}
-		;[this.state, this.bufferState] = [this.bufferState, this.state]
+
+		// Update state and colors
+		this.state = nextState
+		let instanceIndex = 0
+
+		for (let z = 0; z < this.cubeDimension; z++) {
+			for (let y = 0; y < this.cubeDimension; y++) {
+				for (let x = 0; x < this.cubeDimension; x++) {
+					const color = this.state[z][y][x]
+					const colorVector = new THREE.Color()
+					colorVector.setRGB(
+						color.colorRgb[0] / 255,
+						color.colorRgb[1] / 255,
+						color.colorRgb[2] / 255
+					)
+					this.instanceMesh.setColorAt(instanceIndex, colorVector)
+					instanceIndex++
+				}
+			}
+		}
+
+		// Update instance colors
+		if (this.instanceMesh.instanceColor) {
+			this.instanceMesh.instanceColor.needsUpdate = true
+		}
 	}
 
 	private getNeighbours(x: number, y: number, z: number): Cell[] {

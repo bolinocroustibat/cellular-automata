@@ -4,6 +4,7 @@ precision highp float;
 uniform sampler2D currentState;  // Current state texture
 uniform vec2 resolution;         // Texture resolution
 uniform float cubeDimension;     // Cube dimension
+uniform float colorsCount;       // Number of colors in the automaton
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
@@ -38,9 +39,11 @@ void main() {
     // Get current cell state
     vec4 currentCell = getCellState(pos);
     
-    // Count neighbors with different colors
-    int differentNeighbors = 0;
-    vec4 neighborColor = vec4(0.0);
+    // For now, just copy the current state to next state
+    imageStore(nextState, pos, currentCell);
+    
+    // Count neighbors with next color (we'll implement this in the next step)
+    int nextColorNeighbors = 0;
     
     // Check all 26 neighbors
     for (int x = -1; x <= 1; x++) {
@@ -49,20 +52,8 @@ void main() {
                 if (x == 0 && y == 0 && z == 0) continue;
                 
                 vec4 neighbor = getCellState(pos + ivec3(x, y, z));
-                if (neighbor.rgb != currentCell.rgb) {
-                    differentNeighbors++;
-                    neighborColor = neighbor;
-                }
+                // We'll implement the next color check in the next step
             }
         }
     }
-    
-    // Apply CCA rules
-    vec4 nextCell = currentCell;
-    if (differentNeighbors > 13) {  // If more than half of neighbors are different
-        nextCell = neighborColor;
-    }
-    
-    // Write next state
-    imageStore(nextState, pos, nextCell);
 } 
