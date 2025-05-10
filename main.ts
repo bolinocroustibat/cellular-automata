@@ -56,7 +56,10 @@ window.onload = async () => {
 		{
 			algo: initialAlgo,
 			cca2dColorsCount: 8,
-			cca2dThreshold: 2, // Add default threshold
+			cca2dThreshold: 2,
+			cca3dColorsCount: 5,
+			cca3dThreshold: 4,
+			cca3dCubeDimension: 15,
 			resolution: 5,
 		},
 	)

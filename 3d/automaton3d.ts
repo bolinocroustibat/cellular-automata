@@ -76,22 +76,9 @@ export abstract class Automaton3D {
 		this.controls.autoRotate = true
 		this.controls.autoRotateSpeed = 1.0
 
-		// Debug: Check if WebGL context exists
-		const gl = this.renderer.getContext()
-		console.log("WebGL context:", gl)
-
-		// Debug: Check if canvas was replaced
-		console.log("Canvas parent after replacement:", this.renderer.domElement.parentElement)
-
 		// Initialize the cube
 		this.initializeCube()
 		this.setInitialState()
-
-		// Debug: Check scene contents
-		console.log("Scene children:", this.scene.children.length)
-		this.scene.children.forEach(child => {
-			console.log("Scene child:", child.type, child)
-		})
 
 		// Start animation loop
 		this.animate()
@@ -118,12 +105,6 @@ export abstract class Automaton3D {
 
 		// Create instance data
 		const instanceCount = this.cubeDimension * this.cubeDimension * this.cubeDimension
-		console.log("Creating cube with:", {
-			cellSize: this.cellSize,
-			cubeDimension: this.cubeDimension,
-			instanceCount: instanceCount
-		})
-
 		this.instanceMesh = new THREE.InstancedMesh(geometry, material, instanceCount)
 		this.scene.add(this.instanceMesh)
 	}
@@ -131,8 +112,6 @@ export abstract class Automaton3D {
 	private setInitialState(): void {
 		const instanceCount = this.cubeDimension * this.cubeDimension * this.cubeDimension
 		let instanceIndex = 0
-
-		console.log("Setting initial state for", instanceCount, "instances")
 
 		for (let x = 0; x < this.cubeDimension; x++) {
 			for (let y = 0; y < this.cubeDimension; y++) {
@@ -173,7 +152,6 @@ export abstract class Automaton3D {
 			this.instanceMesh.instanceColor.needsUpdate = true
 		}
 
-		console.log("Initial state set, rendering...")
 		this.renderer.render(this.scene, this.camera)
 	}
 
