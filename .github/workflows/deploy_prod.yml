@@ -8,7 +8,7 @@ on:
 jobs:
 
   bump-version:
-    name: Bump Version
+    name: Bump version to ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
 
@@ -29,7 +29,7 @@ jobs:
 
 
   build-and-deploy:
-    name: Deploy to prod because of tag ${{ github.ref_name }}
+    name: Deploy ${{ github.ref_name }} to prod
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -58,7 +58,7 @@ jobs:
           commit_author: Adrien Carpentier <me@adriencarpentier.com>
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
@@ -78,7 +78,7 @@ jobs:
         run: bun run build
 
       - name: Setup SSH key
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.9.1
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -97,11 +97,11 @@ jobs:
           script: sudo systemctl restart nginx.service
 
       - name: Create Sentry "${{ github.ref_name }}" release
-        uses: getsentry/action-release@v1.7.0
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: "adrien-carpentier"
           SENTRY_PROJECT: "cellular-automata"
         with:
           environment: production
-          version: ${{ github.ref_name }}
+          release: ${{ github.ref_name }}
