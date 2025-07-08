@@ -38,22 +38,14 @@ export class LangtonAutomaton extends Automaton2D {
 		if (this.getCurrentPositionColorId() === this.colors[0].id) {
 			// Flip the color of the current cell
 			this.state[this.positionY][this.positionX] = this.colors[1]
-			this.fillSquare(
-				this.colors[1].colorRgb,
-				this.positionX * this.resolution,
-				this.positionY * this.resolution,
-			)
+			this.markDirty(this.positionX, this.positionY)
 			// Turn 90° clockwise
 			this.orientationX = -turnY
 			this.orientationY = turnX
 		} else if (this.getCurrentPositionColorId() === this.colors[1].id) {
 			// Flip the color of the current cell
 			this.state[this.positionY][this.positionX] = this.colors[0]
-			this.fillSquare(
-				this.colors[0].colorRgb,
-				this.positionX * this.resolution,
-				this.positionY * this.resolution,
-			)
+			this.markDirty(this.positionX, this.positionY)
 			// Turn 90° counter-clockwise
 			this.orientationX = turnY
 			this.orientationY = -turnX
@@ -70,5 +62,8 @@ export class LangtonAutomaton extends Automaton2D {
 		// Move forward
 		this.positionX = this.positionX + this.orientationX
 		this.positionY = this.positionY + this.orientationY
+		
+		// Render only dirty cells (handled by parent class)
+		this.render()
 	}
 }

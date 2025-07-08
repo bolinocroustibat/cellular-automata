@@ -34,17 +34,14 @@ export class CCA2D extends Automaton2D {
 						? successorNeighboursCount[0]
 						: this.state[y][x]
 
-				// Update canvas pixels
-				// Optimization - fill pixels only if color value changes from previous state
-				if (newState[y][x] !== this.state[y][x]) {
-					this.fillSquare(
-						newState[y][x].colorRgb,
-						x * this.resolution,
-						y * this.resolution,
-					)
+				// Mark as dirty if state changed
+				if (newState[y][x].id !== this.state[y][x].id) {
+					this.markDirty(x, y)
 				}
 			}
 		}
 		this.state = newState
+		// Render only dirty cells (handled by parent class)
+		this.render()
 	}
 }

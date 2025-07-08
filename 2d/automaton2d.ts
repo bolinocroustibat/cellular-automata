@@ -16,6 +16,10 @@ export abstract class Automaton2D {
 	protected state: Cell[][]
 	protected ctx: CanvasRenderingContext2D
 	renderInterval: NodeJS.Timer
+	
+	// Dirty region rendering support
+	protected dirtyCells = new Set<string>()
+	protected enableDirtyRendering = true
 
 	constructor(
 		canvasEl: HTMLCanvasElement,
@@ -45,6 +49,7 @@ export abstract class Automaton2D {
 		if (this.ctx) {
 			this.ctx.clearRect(0, 0, this.width, this.height)
 		}
+		this.dirtyCells.clear()
 		this.setUniformStateAndRender()
 	}
 
@@ -139,14 +144,44 @@ export abstract class Automaton2D {
 		]
 	}
 
+	// New method to mark cells as dirty
+	protected markDirty(x: number, y: number): void {
+		if (this.enableDirtyRendering) {
+			this.dirtyCells.add(`${x},${y}`)
+		}
+	}
+
+	// New method to render only dirty cells
+	protected renderDirtyCells(): void {
+		if (!this.enableDirtyRendering || this.dirtyCells.size === 0) {
+			return
+		}
+
+		for (const cellKey of this.dirtyCells) {
+			const [x, y] = cellKey.split(',').map(Number)
+			this.fillSquare(
+				this.state[y][x].colorRgb,
+				x * this.resolution,
+				y * this.resolution,
+			)
+		}
+		this.dirtyCells.clear()
+	}
+
+	// Enhanced render method with dirty region support
 	render = (): void => {
-		for (let y = 0; y < this.rowsCount; ++y) {
-			for (let x = 0; x < this.colsCount; ++x) {
-				this.fillSquare(
-					this.state[y][x].colorRgb,
-					x * this.resolution,
-					y * this.resolution,
-				)
+		if (this.enableDirtyRendering && this.dirtyCells.size > 0) {
+			this.renderDirtyCells()
+		} else {
+			// Fallback to full render
+			for (let y = 0; y < this.rowsCount; ++y) {
+				for (let x = 0; x < this.colsCount; ++x) {
+					this.fillSquare(
+						this.state[y][x].colorRgb,
+						x * this.resolution,
+						y * this.resolution,
+					)
+				}
 			}
 		}
 	}

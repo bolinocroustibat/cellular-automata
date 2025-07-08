@@ -53,17 +53,14 @@ export class EntropyAutomaton extends Automaton2D {
 
 				newState[y][x] = mostFrequentColor
 
-				// Update canvas pixels
-				// Optimization - fill pixels only if color value changes from previous state
+				// Mark as dirty if state changed
 				if (newState[y][x].id !== this.state[y][x].id) {
-					this.fillSquare(
-						mostFrequentColor.colorRgb,
-						x * this.resolution,
-						y * this.resolution,
-					)
+					this.markDirty(x, y)
 				}
 			}
 		}
 		this.state = newState
+		// Render only dirty cells (handled by parent class)
+		this.render()
 	}
 }

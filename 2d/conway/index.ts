@@ -17,6 +17,7 @@ export class ConwayAutomaton extends Automaton2D {
 		this.canvasEl.addEventListener("mousedown", (event: MouseEvent) => {
 			const [x, y] = this.getCursorPosition(event)
 			this.state[y][x] = this.colors[1]
+			this.markDirty(x, y) // Mark as dirty for rendering
 			this.fillSquare(
 				this.colors[1].colorRgb,
 				x * this.resolution,
@@ -61,17 +62,14 @@ export class ConwayAutomaton extends Automaton2D {
 					newState[y][x] = this.state[y][x]
 				}
 
-				// Update canvas pixels
-				// Optimization - fill pixels only if color value changes from previous state
-				if (newState[y][x] !== this.state[y][x]) {
-					this.fillSquare(
-						newState[y][x].colorRgb,
-						x * this.resolution,
-						y * this.resolution,
-					)
+				// Mark as dirty if state changed
+				if (newState[y][x].id !== this.state[y][x].id) {
+					this.markDirty(x, y)
 				}
 			}
 		}
 		this.state = newState
+		// Render only dirty cells (handled by parent class)
+		this.render()
 	}
 }
