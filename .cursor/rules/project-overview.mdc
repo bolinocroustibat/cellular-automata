@@ -1,0 +1,35 @@
+---
+description: Cellular Automata Project Overview and Tech Stack
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Cellular Automata Project Overview
+
+This is a generative animated art application featuring various cellular automata algorithms implemented in TypeScript with Vite. The project showcases different types of cellular automata including 1D, 2D, and 3D variants.
+
+## Tech Stack
+- **Runtime**: Bun (JavaScript runtime)
+- **Build Tool**: Vite
+- **Language**: TypeScript
+- **UI Framework**: Vanilla JS with Canvas API
+- **UI Controls**: Tweakpane
+- **Color Management**: Chroma.js
+- **3D Graphics**: Three.js
+- **Error Tracking**: Sentry
+- **Code Quality**: Biome (linting & formatting)
+
+## Key Features
+- **Multiple Algorithm Types**: 1D, 2D, and 3D cellular automata
+- **Real-time Visualization**: Canvas-based rendering with configurable resolution
+- **Color Palettes**: Support for custom color palettes including movie-inspired ones
+- **Interactive Controls**: Real-time parameter adjustment via Tweakpane
+- **Responsive Design**: Adapts to window resizing
+- **Route-based Navigation**: URL-based algorithm selection
+- **Error Tracking**: Sentry integration for monitoring
+
+## Development Commands
+- `bun run dev` - Start development server
+- `bun run build` - Build for production
+- `bun run preview` - Preview production build
+- `bun run check` - Lint and format code with Biome

@@ -1,0 +1,73 @@
+---
+description: Development Guidelines and Coding Patterns
+globs: ["**/*.ts", "**/*.js"]
+alwaysApply: true
+---
+
+# Development Guidelines
+
+## Adding New Algorithms
+1. Create class extending Automaton1D, Automaton2D, or Automaton3D
+2. Implement abstract updateState() method
+3. Add to factory in core/Automaton.ts
+4. Add to route handler in utils/getAlgorithmFromRoute.ts
+5. Add UI controls in ui/controls.ts if needed
+
+## Code Patterns
+- Use factory pattern for automaton creation
+- Use template method pattern in base classes
+- Use strategy pattern for algorithm selection
+- Always implement clear() method for cleanup
+- Use toroidal boundaries (wrapping) for neighbor access
+- Store state as 2D arrays: state[y][x]
+
+## File Naming
+- Algorithm files: lowercase with hyphens (e.g., my-algorithm.ts)
+- Base classes: PascalCase (e.g., Automaton2D.ts)
+- Utility files: camelCase (e.g., pickColors.ts)
+- Type files: PascalCase (e.g., Settings.ts)
+
+## TypeScript Guidelines
+- Use strict typing for all parameters
+- Define interfaces for settings and configurations
+- Use abstract classes for base automaton classes
+- Prefer readonly properties where possible
+- Use type guards for runtime type checking
+
+## Settings Interface
+```typescript
+interface Settings {
+    algo: string                    // Algorithm identifier
+    cca1dColorsCount?: number      // 1D CCA colors
+    cca2dColorsCount?: number      // 2D CCA colors
+    cca2dThreshold?: number        // 2D CCA threshold
+    cca3dColorsCount?: number      // 3D CCA colors
+    cca3dThreshold?: number        // 3D CCA threshold
+    cca3dCubeDimension?: number    // 3D cube size
+    entropyColorsCount?: number    // Entropy colors
+    resolution?: number            // Grid resolution
+    palette?: string               // Color palette name
+}
+```
+
+## Performance Considerations
+- Use WebGL for 1D algorithms when possible
+- Implement proper cleanup to prevent memory leaks
+- Use configurable resolution for performance tuning
+- Consider grid size vs update frequency trade-offs
+- Use efficient 2D/3D array structures for state storage
+- Pre-compute color palettes for better performance
+
+## Error Handling
+- Use Sentry for error tracking in production
+- Implement graceful fallbacks (WebGL → Canvas)
+- Validate settings before algorithm creation
+- Handle edge cases in neighbor calculations
+- Default to CCA-2D on invalid routes
+
+## UI/UX Patterns
+- Use Tweakpane for real-time controls
+- Support route-based algorithm selection
+- Provide responsive canvas sizing
+- Include color palette support
+- Add algorithm-specific parameter controls

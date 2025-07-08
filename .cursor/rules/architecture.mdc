@@ -1,0 +1,58 @@
+---
+description: Project Architecture and Design Patterns
+globs: ["core/**/*", "1d/**/*", "2d/**/*", "3d/**/*"]
+alwaysApply: true
+---
+
+# Architecture and Design Patterns
+
+## Core Design Patterns
+
+### 1. Factory Pattern - Automaton Creation
+The `Automaton` class in `core/Automaton.ts` serves as a factory for creating different types of cellular automata based on the algorithm type specified in settings.
+
+### 2. Template Method Pattern - Base Classes
+Each dimension (1D, 2D, 3D) has a base abstract class that defines the common structure:
+- `Automaton2D` - Base class for all 2D automata
+- `Automaton1D` - Base class for all 1D automata  
+- `Automaton3D` - Base class for all 3D automata
+
+These base classes provide:
+- Common initialization logic
+- Canvas setup and rendering
+- State management
+- Timer-based animation loops
+- Abstract `updateState()` method for subclasses to implement
+
+### 3. Strategy Pattern - Algorithm Selection
+Different algorithms are implemented as separate classes that can be swapped at runtime based on user selection or URL routing.
+
+## Class Hierarchy
+```
+Automaton (abstract)
+├── Automaton1D (abstract)
+│   ├── CCA1D
+│   ├── Rule30
+│   ├── Rule90
+│   └── Rule110
+├── Automaton2D (abstract)
+│   ├── CCA2D
+│   ├── ConwayAutomaton
+│   ├── ImmigrationAutomaton
+│   ├── QuadLifeAutomaton
+│   ├── LangtonAutomaton
+│   └── EntropyAutomaton
+└── Automaton3D (abstract)
+    └── CCA3D
+```
+
+## Data Flow
+1. **Initialization**: main.ts → Automaton.create() → Specific Automaton Class
+2. **Runtime Updates**: Controls → Settings → Automaton → Canvas Rendering
+3. **State Updates**: Timer → updateState() → State Change → render() → Canvas
+
+## Rendering Architecture
+- **Canvas-Based Rendering**: Configurable grid resolution (default: 5px)
+- **WebGL Support**: Optional for 1D algorithms with shader-based rendering
+- **Color Management**: RGB-based with palette support
+- **Responsive Design**: Adapts to window resizing

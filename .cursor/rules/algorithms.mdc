@@ -1,0 +1,32 @@
+---
+description: Available Algorithms Reference and Characteristics
+globs: ["1d/**/*", "2d/**/*", "3d/**/*"]
+alwaysApply: false
+---
+
+# Available Algorithms Reference
+
+## 1D Cellular Automata
+- **CCA (Cyclic Cellular Automaton)**: `/cca-1d` - Wave-like patterns with color cycling
+- **Rule 30**: `/rule30` - Chaotic patterns, used in cryptography
+- **Rule 90**: `/rule90` - Sierpinski triangle patterns, fractal behavior
+- **Rule 110**: `/rule110` - Turing complete, complex emergent patterns
+
+## 2D Cellular Automata
+- **CCA (Cyclic Cellular Automaton)**: `/cca-2d` - Spiral and wave patterns (default)
+- **Conway's Game of Life**: `/conway` - Classic automaton with gliders and oscillators
+- **Immigration Game**: `/immigration` - Conway's Life with 3 colors
+- **Quad-Life**: `/quadlife` - Conway's Life with 5 colors
+- **Langton's Ant**: `/langton` - Ant that creates highways after initial chaos
+- **Entropy**: `/entropy` - Entropy-driven color evolution
+
+## 3D Cellular Automata
+- **CCA (Cyclic Cellular Automaton)**: `/cca-3d` - 3D spatial patterns with Three.js
+
+## Algorithm Selection
+Algorithms are selected based on the URL path. If no valid route is provided, defaults to CCA-2D.
+
+## Performance Characteristics
+- **1D Algorithms**: Fastest (Rule 30, 90, 110), Medium (CCA-1D)
+- **2D Algorithms**: Fastest (Conway's Life), Medium (Immigration, Quad-Life), Slower (CCA-2D)
+- **3D Algorithms**: Slowest (CCA-3D with 3D rendering overhead)
