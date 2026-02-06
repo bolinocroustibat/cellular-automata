@@ -1,8 +1,7 @@
 import type { Cell } from "../types/Cell"
-import { pickColors } from "../utils/pickColors"
-import { randomInt } from "../utils/randomInt"
-import { setupCanvas } from "../utils/setupCanvas"
 import { nextCellColorId } from "../utils/nextCellColorId"
+import { pickColors } from "../utils/pickColors"
+import { setupCanvas } from "../utils/setupCanvas"
 
 export class Automaton2D {
 	protected canvasEl: HTMLCanvasElement
@@ -69,21 +68,6 @@ export class Automaton2D {
 					this.state[y][x].colorRgb,
 					x * this.resolution,
 					y * this.resolution,
-				)
-			}
-		}
-	}
-
-	placePatternRandomly = (pattern: number[][]): void => {
-		const posX = randomInt(0, this.colsCount - pattern[0].length)
-		const posY = randomInt(0, this.rowsCount - pattern.length)
-		for (let y = 0; y < pattern.length; ++y) {
-			for (let x = 0; x < pattern[y].length; ++x) {
-				this.state[posY + y][posX + x] = this.colors[pattern[y][x]]
-				this.fillSquare(
-					this.colors[pattern[y][x]].colorRgb,
-					(posX + x) * this.resolution,
-					(posY + y) * this.resolution,
 				)
 			}
 		}

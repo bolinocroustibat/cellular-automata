@@ -1,5 +1,10 @@
 import * as Sentry from "@sentry/browser"
 import { Automaton } from "./core/Automaton"
+import type { RendererKind } from "./utils/renderer-preference"
+import {
+	getInitialRenderer,
+	saveRendererPreference,
+} from "./utils/renderer-preference"
 import { Controls } from "./ui/controls"
 
 // Initialize Sentry before any other code
@@ -20,28 +25,45 @@ Sentry.init({
 
 let controls: Controls
 let automaton: Automaton
+let currentRenderer: RendererKind = getInitialRenderer()
 
 const reset = async (): Promise<void> => {
-	// Cleanup existing automaton
 	Automaton.cleanup(automaton)
 	automaton = undefined
 
-	// Get canvas and dimensions
-	const canvasEl = document.getElementById("canvas") as HTMLCanvasElement
+	const oldCanvas = document.getElementById("canvas") as HTMLCanvasElement
+	const parent = oldCanvas.parentNode
+	if (!parent) return
+	const canvasEl = document.createElement("canvas")
+	canvasEl.id = "canvas"
+	parent.replaceChild(canvasEl, oldCanvas)
+
 	const width = window.innerWidth
 	const height = window.innerHeight
 
-	// Create new automaton
-	automaton = await Automaton.create(canvasEl, width, height)
+	automaton = await Automaton.create(canvasEl, width, height, {
+		renderer: currentRenderer,
+	})
 
-	// Update automaton reference in Controls
 	controls.setAutomaton(automaton)
 }
 
 window.onload = async () => {
 	const canvasEl = document.getElementById("canvas") as HTMLCanvasElement
-	automaton = await Automaton.create(canvasEl, window.innerWidth, window.innerHeight)
-	controls = new Controls(automaton, reset)
+	automaton = await Automaton.create(
+		canvasEl,
+		window.innerWidth,
+		window.innerHeight,
+		{ renderer: currentRenderer },
+	)
+	controls = new Controls(automaton, reset, {
+		getRenderer: () => currentRenderer,
+		setRenderer: (value: RendererKind) => {
+			currentRenderer = value
+			saveRendererPreference(value)
+			void reset()
+		},
+	})
 }
 
 window.onresize = (): void => {

@@ -1,19 +1,31 @@
 import type { ButtonApi } from "tweakpane"
 import { Pane } from "tweakpane"
 import type { Automaton } from "../core/Automaton"
+import type { RendererKind } from "../utils/renderer-preference"
+
+export interface RendererOptions {
+	getRenderer: () => RendererKind
+	setRenderer: (value: RendererKind) => void
+}
 
 export class Controls {
 	private pane: Pane
 	private automaton: Automaton
 	private onReset: () => Promise<void>
+	private rendererOptions: RendererOptions | undefined
 
 	private clearBtn: ButtonApi
 	private resetBtn: ButtonApi
 	private startBtn: ButtonApi
 
-	constructor(automaton: Automaton, onReset: () => Promise<void>) {
+	constructor(
+		automaton: Automaton,
+		onReset: () => Promise<void>,
+		rendererOptions?: RendererOptions,
+	) {
 		this.automaton = automaton
 		this.onReset = onReset
+		this.rendererOptions = rendererOptions
 		this.setupPane()
 		this.setupBlades()
 		this.setupEventListeners()
@@ -27,6 +39,19 @@ export class Controls {
 	}
 
 	private setupBlades(): void {
+		if (this.rendererOptions) {
+			const params = {
+				renderer: this.rendererOptions.getRenderer(),
+			}
+			this.pane
+				.addBinding(params, "renderer", {
+					options: { "WebGL": "webgl", "Canvas 2D": "canvas" },
+					label: "Rendu",
+				})
+				.on("change", (ev) => {
+					this.rendererOptions?.setRenderer(ev.value as RendererKind)
+				})
+		}
 		this.clearBtn = this.pane.addButton({ title: "Clear" })
 		this.resetBtn = this.pane.addButton({ title: "Reset" })
 		this.startBtn = this.pane.addButton({ title: "Start" })
