@@ -1,7 +1,6 @@
 import * as Sentry from "@sentry/browser"
 import { Automaton } from "./core/Automaton"
 import { Controls } from "./ui/controls"
-import { getAlgorithmFromRoute } from "./utils/getAlgorithmFromRoute"
 
 // Initialize Sentry before any other code
 Sentry.init({
@@ -33,12 +32,7 @@ const reset = async (): Promise<void> => {
 	const height = window.innerHeight
 
 	// Create new automaton
-	automaton = await Automaton.create(
-		canvasEl,
-		width,
-		height,
-		controls.getSettings(),
-	)
+	automaton = await Automaton.create(canvasEl, width, height)
 
 	// Update automaton reference in Controls
 	controls.setAutomaton(automaton)
@@ -46,20 +40,7 @@ const reset = async (): Promise<void> => {
 
 window.onload = async () => {
 	const canvasEl = document.getElementById("canvas") as HTMLCanvasElement
-	const initialAlgo = getAlgorithmFromRoute()
-
-	// Create automaton with all needed settings
-	automaton = await Automaton.create(
-		canvasEl,
-		window.innerWidth,
-		window.innerHeight,
-		{
-			algo: initialAlgo,
-			cca2dColorsCount: 8,
-			cca2dThreshold: 2, // Add default threshold
-			resolution: 5,
-		},
-	)
+	automaton = await Automaton.create(canvasEl, window.innerWidth, window.innerHeight)
 	controls = new Controls(automaton, reset)
 }
 

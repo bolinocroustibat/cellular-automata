@@ -1,40 +1,37 @@
 import type { Cell } from "../types/Cell"
-import type { RGB } from "../types/RGB"
 import { pickColors } from "../utils/pickColors"
 import { randomInt } from "../utils/randomInt"
 import { setupCanvas } from "../utils/setupCanvas"
+import { nextCellColorId } from "../utils/nextCellColorId"
 
-export abstract class Automaton2D {
+export class Automaton2D {
 	protected canvasEl: HTMLCanvasElement
 	protected width: number
 	protected height: number
 	protected resolution: number
-	protected colorsCount: number
 	protected rowsCount: number
 	protected colsCount: number
 	protected colors: Cell[]
 	protected state: Cell[][]
 	protected ctx: CanvasRenderingContext2D
 	renderInterval: NodeJS.Timeout
+	private threshold: number
 
-	constructor(
-		canvasEl: HTMLCanvasElement,
-		width: number,
-		height: number,
-		resolution: number,
-		colorsCount = 2,
-		paletteColors?: RGB[],
-	) {
+	constructor(canvasEl: HTMLCanvasElement, width: number, height: number) {
+		const RESOLUTION = 1
+		const COLORS_COUNT = 8
+		const THRESHOLD = 2
+		this.threshold = THRESHOLD
 		this.canvasEl = canvasEl
-		this.width = width - (width % resolution)
-		this.height = height - (height % resolution)
-		this.resolution = resolution
-		this.rowsCount = this.height / resolution
-		this.colsCount = this.width / resolution
-		this.colorsCount = colorsCount
-		this.colors = pickColors(colorsCount, paletteColors)
+		this.resolution = RESOLUTION
+		this.width = width - (width % RESOLUTION)
+		this.height = height - (height % RESOLUTION)
+		this.rowsCount = this.height / RESOLUTION
+		this.colsCount = this.width / RESOLUTION
+		this.colors = pickColors(COLORS_COUNT)
 		this.state = []
 		this.ctx = setupCanvas(this.canvasEl, this.width, this.height)
+		this.setRandomStateAndRender()
 	}
 
 	clear(): void {
@@ -49,7 +46,6 @@ export abstract class Automaton2D {
 	}
 
 	protected setUniformStateAndRender = (): void => {
-		// Initial empty state populating, create state AND render the canvas
 		for (let y = 0; y < this.rowsCount; ++y) {
 			for (let x = 0; x < this.colsCount; ++x) {
 				if (!this.state[y]) this.state[y] = []
@@ -64,7 +60,6 @@ export abstract class Automaton2D {
 	}
 
 	protected setRandomStateAndRender = (): void => {
-		// Initial random populating, create state AND render the canvas
 		for (let y = 0; y < this.rowsCount; ++y) {
 			for (let x = 0; x < this.colsCount; ++x) {
 				if (!this.state[y]) this.state[y] = []
@@ -80,14 +75,11 @@ export abstract class Automaton2D {
 	}
 
 	placePatternRandomly = (pattern: number[][]): void => {
-		const posX = randomInt(0, this.colsCount - pattern[0].length) // Adjusted to ensure pattern fits within the grid
-		const posY = randomInt(0, this.rowsCount - pattern.length) // Adjusted to ensure pattern fits within the grid
-		// Place the pattern at the specified position
+		const posX = randomInt(0, this.colsCount - pattern[0].length)
+		const posY = randomInt(0, this.rowsCount - pattern.length)
 		for (let y = 0; y < pattern.length; ++y) {
 			for (let x = 0; x < pattern[y].length; ++x) {
-				// Change state at the specified squares
 				this.state[posY + y][posX + x] = this.colors[pattern[y][x]]
-				// Change canvas pixels
 				this.fillSquare(
 					this.colors[pattern[y][x]].colorRgb,
 					(posX + x) * this.resolution,
@@ -129,10 +121,8 @@ export abstract class Automaton2D {
 			this.getCellColor(x - 1, y - 1),
 			this.getCellColor(x, y - 1),
 			this.getCellColor(x + 1, y - 1),
-			// Middle cells
 			this.getCellColor(x - 1, y),
 			this.getCellColor(x + 1, y),
-			// Lower cells
 			this.getCellColor(x - 1, y + 1),
 			this.getCellColor(x, y + 1),
 			this.getCellColor(x + 1, y + 1),
@@ -151,5 +141,33 @@ export abstract class Automaton2D {
 		}
 	}
 
-	protected abstract updateState(): void
+	private updateState = (): void => {
+		const newState: Cell[][] = []
+		for (let y = 0; y < this.rowsCount; ++y) {
+			newState[y] = []
+			for (let x = 0; x < this.colsCount; ++x) {
+				const neighbours: Cell[] = this.getNeighborsColors(x, y)
+				const nextColorId: number = nextCellColorId(
+					this.state[y][x],
+					this.colors,
+				)
+				const successorNeighboursCount: Cell[] = neighbours.filter(
+					(neighbour) => neighbour.id === nextColorId,
+				)
+				newState[y][x] =
+					successorNeighboursCount.length >= this.threshold
+						? successorNeighboursCount[0]
+						: this.state[y][x]
+
+				if (newState[y][x] !== this.state[y][x]) {
+					this.fillSquare(
+						newState[y][x].colorRgb,
+						x * this.resolution,
+						y * this.resolution,
+					)
+				}
+			}
+		}
+		this.state = newState
+	}
 }
