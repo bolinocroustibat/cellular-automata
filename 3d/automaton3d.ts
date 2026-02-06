@@ -28,7 +28,7 @@ export abstract class Automaton3D {
 	protected renderer: THREE.WebGLRenderer
 	private animationFrameId?: number
 	private animationFrameCount = 0
-	protected renderInterval: NodeJS.Timer
+	renderInterval: NodeJS.Timeout
 
 	constructor(
 		canvasEl: HTMLCanvasElement,

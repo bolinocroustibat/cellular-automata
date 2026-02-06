@@ -14,7 +14,7 @@ import type { Settings } from "../types/Settings"
 import { moviePalettes } from "../utils/fetchMoviePalettes"
 
 export abstract class Automaton {
-	renderInterval: NodeJS.Timer
+	renderInterval: NodeJS.Timeout
 	abstract clear(): void
 	abstract start(intervalMs: number, maxIterations?: number): void
 

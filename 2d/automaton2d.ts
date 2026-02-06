@@ -15,7 +15,7 @@ export abstract class Automaton2D {
 	protected colors: Cell[]
 	protected state: Cell[][]
 	protected ctx: CanvasRenderingContext2D
-	renderInterval: NodeJS.Timer
+	renderInterval: NodeJS.Timeout
 
 	constructor(
 		canvasEl: HTMLCanvasElement,
