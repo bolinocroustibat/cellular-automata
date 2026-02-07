@@ -27,8 +27,18 @@ const reset = async (): Promise<void> => {
 	Automaton.cleanup(automaton)
 	automaton = undefined
 
-	// Get canvas and dimensions
-	const canvasEl = document.getElementById("canvas") as HTMLCanvasElement
+	// Replace the old canvas with a new one. A canvas can only have one context (either WebGL or 2D);
+	// once created, that context is fixed for the lifetime of the element. So when switching algorithms
+	// (e.g. from cca-2D-webgl to cca-2D), the old canvas would still hold the previous context and
+	// getContext("2d") would return null. Swapping in a fresh canvas ensures the new automaton can
+	// acquire the correct context.
+	const oldCanvas = document.getElementById("canvas") as HTMLCanvasElement
+	const parent = oldCanvas.parentNode
+	if (!parent) return
+	const canvasEl = document.createElement("canvas")
+	canvasEl.id = "canvas"
+	parent.replaceChild(canvasEl, oldCanvas)
+
 	const width = window.innerWidth
 	const height = window.innerHeight
 

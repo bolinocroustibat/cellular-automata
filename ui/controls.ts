@@ -85,6 +85,7 @@ export class Controls {
 					"Sierpinski Triangle (Rule 90)": "rule90",
 					"Turing Complete Rule 110": "rule110",
 					"2 dimensions Cyclic Cellular Automaton": "cca-2D",
+					"2 dimensions Cyclic Cellular Automaton (WebGL)": "cca-2D-webgl",
 					"3 dimensions Cyclic Cellular Automaton": "cca-3D",
 					"Conway's game of Life": "conway",
 					"Immigration game": "immigration",
@@ -263,6 +264,9 @@ export class Controls {
 				case "cca-2D":
 					this.setCca2dBlades()
 					break
+				case "cca-2D-webgl":
+					this.setCca2dWebglBlades()
+					break
 				case "cca-3D":
 					this.setCca3dBlades()
 					break
@@ -318,6 +322,7 @@ export class Controls {
 					this.automaton.start(10)
 					break
 				case "cca-2D":
+				case "cca-2D-webgl":
 					this.automaton.start(25, 2500)
 					break
 				case "cca-3D":
@@ -349,6 +354,14 @@ export class Controls {
 		this.cca2dColorsCountBlade.hidden = false
 		this.cca2dThresholdBlade.hidden = false
 		this.resolutionBlade.hidden = false
+		this.paletteSelector.hidden = false
+	}
+
+	/** Same as CCA2D but without resolution (WebGL always uses 1 pixel = 1 cell). */
+	private setCca2dWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.cca2dColorsCountBlade.hidden = false
+		this.cca2dThresholdBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
