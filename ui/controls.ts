@@ -87,7 +87,8 @@ export class Controls {
 					"2 dimensions Cyclic Cellular Automaton": "cca-2D",
 					"2 dimensions Cyclic Cellular Automaton (WebGL)": "cca-2D-webgl",
 					"3 dimensions Cyclic Cellular Automaton": "cca-3D",
-					"Conway's game of Life": "conway",
+					"Conway's Game of Life": "conway",
+					"Conway's Game of Life (WebGL)": "conway-webgl",
 					"Immigration game": "immigration",
 					"Quad-Life": "quadlife",
 					"Langton's ant": "langton",
@@ -267,6 +268,9 @@ export class Controls {
 				case "cca-2D-webgl":
 					this.setCca2dWebglBlades()
 					break
+				case "conway-webgl":
+					this.setConwayWebglBlades()
+					break
 				case "cca-3D":
 					this.setCca3dBlades()
 					break
@@ -329,6 +333,7 @@ export class Controls {
 					this.automaton.start(12)
 					break
 				case "conway":
+				case "conway-webgl":
 				case "immigration":
 				case "quadlife":
 					this.automaton.start(25, 12000)
@@ -377,6 +382,13 @@ export class Controls {
 		for (const blade of this.blades) blade.hidden = true
 		this.resolutionBlade.hidden = false
 		this.conwayPatterns.hidden = false
+		this.clearBtn.hidden = false
+	}
+
+	/** Conway WebGL: no resolution (1 px = 1 cell), no pattern presets. */
+	private setConwayWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.paletteSelector.hidden = false
 		this.clearBtn.hidden = false
 	}
 

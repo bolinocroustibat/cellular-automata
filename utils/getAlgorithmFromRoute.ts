@@ -4,6 +4,7 @@ const VALID_ALGOS = [
 	"cca-2D-webgl",
 	"cca-3D",
 	"conway",
+	"conway-webgl",
 	"immigration",
 	"quadlife",
 	"langton",

@@ -3,7 +3,7 @@ import { CCA1D } from "../1d/cca"
 import { Rule30 } from "../1d/rule30"
 import { Rule90 } from "../1d/rule90"
 import { Rule110 } from "../1d/rule110"
-import { CCA2DWebGL } from "../2d-webgl"
+import { CCA2DWebGL, Conway2DWebGL } from "../2d-webgl"
 import { CCA2D } from "../2d/cca"
 import { ConwayAutomaton } from "../2d/conway"
 import { EntropyAutomaton } from "../2d/entropy"
@@ -77,6 +77,8 @@ export abstract class Automaton {
 					)
 				case "conway":
 					return new ConwayAutomaton(canvasEl, width, height, resolution)
+				case "conway-webgl":
+					return new Conway2DWebGL(canvasEl, width, height, paletteColors)
 				case "immigration":
 					return new ImmigrationAutomaton(
 						canvasEl,
