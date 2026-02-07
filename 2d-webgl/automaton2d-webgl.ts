@@ -241,7 +241,7 @@ export abstract class Automaton2DWebGL {
 		return tex
 	}
 
-	private uploadStateToTexture(tex: WebGLTexture): void {
+	protected uploadStateToTexture(tex: WebGLTexture): void {
 		const rgba = stateIdsToRgbaUpload(this.stateIds, this.colorsCount)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, tex)
 		this.gl.texImage2D(
@@ -256,6 +256,11 @@ export abstract class Automaton2DWebGL {
 			rgba,
 		)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+	}
+
+	/** Override in subclasses (e.g. Langton) to use custom step logic. Default: runSimStep(). */
+	protected performSimStep(): void {
+		this.runSimStep()
 	}
 
 	/** One sim step on GPU: read stateTextures[readIndex], write to the other, then swap. */
@@ -281,7 +286,7 @@ export abstract class Automaton2DWebGL {
 		this.readIndex = writeIndex
 	}
 
-	private drawDisplay(): void {
+	protected drawDisplay(): void {
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
 		this.gl.viewport(0, 0, this.width, this.height)
 		this.gl.useProgram(this.displayProgram)
@@ -323,7 +328,7 @@ export abstract class Automaton2DWebGL {
 	}
 
 	private stepAndDisplay(): void {
-		this.runSimStep()
+		this.performSimStep()
 		this.drawDisplay()
 	}
 

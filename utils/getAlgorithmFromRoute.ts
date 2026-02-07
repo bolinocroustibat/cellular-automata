@@ -8,6 +8,7 @@ const VALID_ALGOS = [
 	"immigration",
 	"quadlife",
 	"langton",
+	"langton-webgl",
 	"entropy",
 	"rule30",
 	"rule90",

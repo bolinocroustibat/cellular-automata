@@ -60,7 +60,7 @@ export class Controls {
 		this.setupPane()
 		this.setupBlades()
 		this.setupEventListeners()
-		this.setCca2dBlades() // Default view
+		this.setBladesForAlgo(getAlgorithmFromRoute())
 
 		void fetchMoviePalettes(this.paletteSelector, MOVIES_PALETTES_API)
 	}
@@ -92,6 +92,7 @@ export class Controls {
 					"Immigration game": "immigration",
 					"Quad-Life": "quadlife",
 					"Langton's ant": "langton",
+					"Langton's ant (WebGL)": "langton-webgl",
 					"2 dimensions Entropy Automaton": "entropy",
 				},
 			},
@@ -245,51 +246,9 @@ export class Controls {
 
 		// Algorithm selector change handler
 		this.algoSelector.on("change", (event: { value: string }) => {
-			// Update URL when algorithm changes
 			const newUrl = `/${event.value}`
 			window.history.pushState({}, "", newUrl)
-
-			switch (event.value) {
-				case "cca-1D":
-					this.setCca1dBlades()
-					break
-				case "rule30":
-					this.setRule30Blades()
-					break
-				case "rule90":
-					this.setRule90Blades()
-					break
-				case "rule110":
-					this.setRule110Blades()
-					break
-				case "cca-2D":
-					this.setCca2dBlades()
-					break
-				case "cca-2D-webgl":
-					this.setCca2dWebglBlades()
-					break
-				case "conway-webgl":
-					this.setConwayWebglBlades()
-					break
-				case "cca-3D":
-					this.setCca3dBlades()
-					break
-				case "conway":
-					this.setConwayBlades()
-					break
-				case "immigration":
-					this.setImmigrationBlades()
-					break
-				case "quadlife":
-					this.setQuadLifeBlades()
-					break
-				case "langton":
-					this.setLangtonBlades()
-					break
-				case "entropy":
-					this.setEntropyBlades()
-					break
-			}
+			this.setBladesForAlgo(event.value)
 			void this.onReset()
 		})
 
@@ -298,6 +257,8 @@ export class Controls {
 			const newAlgo = getAlgorithmFromRoute()
 			if (newAlgo !== this.getSettings().algo) {
 				this.algoSelector.value = newAlgo
+				this.setBladesForAlgo(newAlgo)
+				void this.onReset()
 			}
 		})
 
@@ -339,6 +300,7 @@ export class Controls {
 					this.automaton.start(25, 12000)
 					break
 				case "langton":
+				case "langton-webgl":
 					this.automaton.start(3, 12000)
 					break
 				case "entropy":
@@ -346,6 +308,55 @@ export class Controls {
 					break
 			}
 		})
+	}
+
+	private setBladesForAlgo(algo: string): void {
+		switch (algo) {
+			case "cca-1D":
+				this.setCca1dBlades()
+				break
+			case "rule30":
+				this.setRule30Blades()
+				break
+			case "rule90":
+				this.setRule90Blades()
+				break
+			case "rule110":
+				this.setRule110Blades()
+				break
+			case "cca-2D":
+				this.setCca2dBlades()
+				break
+			case "cca-2D-webgl":
+				this.setCca2dWebglBlades()
+				break
+			case "conway-webgl":
+				this.setConwayWebglBlades()
+				break
+			case "cca-3D":
+				this.setCca3dBlades()
+				break
+			case "conway":
+				this.setConwayBlades()
+				break
+			case "immigration":
+				this.setImmigrationBlades()
+				break
+			case "quadlife":
+				this.setQuadLifeBlades()
+				break
+			case "langton":
+				this.setLangtonBlades()
+				break
+			case "langton-webgl":
+				this.setLangtonWebglBlades()
+				break
+			case "entropy":
+				this.setEntropyBlades()
+				break
+			default:
+				this.setCca2dBlades()
+		}
 	}
 
 	private setCca1dBlades(): void {
@@ -407,6 +418,13 @@ export class Controls {
 	private setLangtonBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.resolutionBlade.hidden = false
+	}
+
+	/** Langton WebGL: no resolution (1 px = 1 cell), palette for 2 colors. */
+	private setLangtonWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.paletteSelector.hidden = false
+		this.clearBtn.hidden = false
 	}
 
 	private setEntropyBlades(): void {
