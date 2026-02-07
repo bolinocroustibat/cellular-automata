@@ -38,13 +38,16 @@ export class Controls {
 		})
 	}
 
+	private params = {
+		renderer: "canvas" as RendererKind,
+		stepIntervalMs: 80,
+	}
+
 	private setupBlades(): void {
 		if (this.rendererOptions) {
-			const params = {
-				renderer: this.rendererOptions.getRenderer(),
-			}
+			this.params.renderer = this.rendererOptions.getRenderer()
 			this.pane
-				.addBinding(params, "renderer", {
+				.addBinding(this.params, "renderer", {
 					options: { "WebGL": "webgl", "Canvas 2D": "canvas" },
 					label: "Rendu",
 				})
@@ -52,6 +55,12 @@ export class Controls {
 					this.rendererOptions?.setRenderer(ev.value as RendererKind)
 				})
 		}
+		this.pane.addBinding(this.params, "stepIntervalMs", {
+			label: "Vitesse (ms/pas)",
+			min: 20,
+			max: 500,
+			step: 10,
+		})
 		this.clearBtn = this.pane.addButton({ title: "Clear" })
 		this.resetBtn = this.pane.addButton({ title: "Reset" })
 		this.startBtn = this.pane.addButton({ title: "Start" })
@@ -69,7 +78,7 @@ export class Controls {
 		this.startBtn.on("click", () => {
 			if (!this.automaton) return
 			clearInterval(this.automaton.renderInterval)
-			this.automaton.start(25, 2500)
+			this.automaton.start(this.params.stepIntervalMs, 2500)
 		})
 	}
 
