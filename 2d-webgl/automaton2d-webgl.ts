@@ -32,38 +32,6 @@ void main() {
 }
 `
 
-// Simulation fragment shader (GLSL ES 3.00). CCA rule: each cycle, a cell takes the next color
-// (0→1→…→7→0) if at least threshold of its 8 neighbors already have that next color; otherwise it keeps its current color.
-const SIM_FRAG = `#version 300 es
-precision highp float;
-uniform sampler2D u_state;
-uniform float u_colorsCount;
-uniform float u_threshold;
-uniform vec2 u_texelSize;
-in vec2 v_uv;
-out vec4 out_color;
-void main() {
-  float current = texture(u_state, v_uv).r;
-  float currentId = floor(current * u_colorsCount + 0.5);
-  float nextId = mod(currentId + 1.0, u_colorsCount);
-  float count = 0.0;
-  for (int dy = -1; dy <= 1; dy++) {
-    for (int dx = -1; dx <= 1; dx++) {
-      if (dx != 0 || dy != 0) {
-        vec2 nuv = v_uv + vec2(float(dx), float(dy)) * u_texelSize;
-        nuv = fract(nuv);
-        float n = texture(u_state, nuv).r;
-        float nId = floor(n * u_colorsCount + 0.5);
-        if (abs(nId - nextId) < 0.5) count += 1.0;
-      }
-    }
-  }
-  float outId = count >= u_threshold ? nextId : currentId;
-  float norm = outId / u_colorsCount;
-  out_color = vec4(norm, 0.0, 0.0, 1.0);
-}
-`
-
 // Fullscreen quad as two triangles in NDC: two triangles covering [-1,1]×[-1,1] (xy per vertex).
 const QUAD = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1])
 
@@ -141,7 +109,10 @@ function createPaletteTexture(
 }
 
 /** Encode color id 0..N-1 as R channel id/N so shader floor(v*N+0.5) recovers id. */
-function stateIdsToRgbaUpload(stateIds: Uint8Array, colorsCount: number): Uint8Array {
+function stateIdsToRgbaUpload(
+	stateIds: Uint8Array,
+	colorsCount: number,
+): Uint8Array {
 	const rgba = new Uint8Array(stateIds.length * 4)
 	for (let i = 0; i < stateIds.length; i++) {
 		const id = Math.min(stateIds[i], colorsCount - 1)
@@ -154,30 +125,38 @@ function stateIdsToRgbaUpload(stateIds: Uint8Array, colorsCount: number): Uint8A
 	return rgba
 }
 
-export class Automaton2DWebGL {
-	private gl: WebGL2RenderingContext
-	private width: number
-	private height: number
-	private displayProgram: WebGLProgram
-	private simProgram: WebGLProgram
-	private quadBuffer: WebGLBuffer
-	private stateTextures: [WebGLTexture, WebGLTexture]
-	private fbos: [WebGLFramebuffer, WebGLFramebuffer]
-	private readIndex: number
-	private paletteTexture: WebGLTexture
-	private stateIds: Uint8Array
-	private colors: Cell[]
-	private colorsCount: number
-	private threshold: number
+/**
+ * Abstract base for 2D WebGL automatons. Subclasses provide the simulation shader via
+ * getSimFragSource() and optional algorithm-specific uniforms via setSimUniforms().
+ * Resolution is always 1 (one pixel per cell).
+ */
+export abstract class Automaton2DWebGL {
+	protected gl: WebGL2RenderingContext
+	protected width: number
+	protected height: number
+	protected displayProgram: WebGLProgram
+	protected simProgram: WebGLProgram
+	protected quadBuffer: WebGLBuffer
+	protected stateTextures: [WebGLTexture, WebGLTexture]
+	protected fbos: [WebGLFramebuffer, WebGLFramebuffer]
+	protected readIndex: number
+	protected paletteTexture: WebGLTexture
+	protected stateIds: Uint8Array
+	protected colors: Cell[]
+	protected colorsCount: number
 	renderInterval: NodeJS.Timeout | undefined
 
-	/** Resolution is always 1 (one pixel per cell); not configurable. */
+	/** Subclasses return the simulation fragment shader source (GLSL ES 3.00). */
+	protected abstract getSimFragSource(): string
+
+	/** Subclasses override to set algorithm-specific uniforms before the sim draw. Default: no-op. */
+	protected setSimUniforms(_program: WebGLProgram): void {}
+
 	constructor(
 		canvasEl: HTMLCanvasElement,
 		width: number,
 		height: number,
-		threshold?: number,
-		colorsCount?: number,
+		colorsCount: number,
 		paletteColors?: RGB[],
 	) {
 		const gl = canvasEl.getContext("webgl2")
@@ -186,7 +165,6 @@ export class Automaton2DWebGL {
 
 		this.width = width
 		this.height = height
-		this.threshold = threshold
 		this.colorsCount = colorsCount
 		canvasEl.width = width
 		canvasEl.height = height
@@ -194,7 +172,7 @@ export class Automaton2DWebGL {
 
 		this.colors = pickColors(this.colorsCount, paletteColors)
 		this.displayProgram = createProgram(this.gl, VERT, DISPLAY_FRAG)
-		this.simProgram = createProgram(this.gl, VERT, SIM_FRAG)
+		this.simProgram = createProgram(this.gl, VERT, this.getSimFragSource())
 
 		const quadBuffer = this.gl.createBuffer()
 		if (!quadBuffer) throw new Error("Could not create buffer")
@@ -203,10 +181,7 @@ export class Automaton2DWebGL {
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, QUAD, this.gl.STATIC_DRAW)
 
 		this.stateIds = new Uint8Array(this.width * this.height)
-		this.stateTextures = [
-			this.createStateTexture(),
-			this.createStateTexture(),
-		]
+		this.stateTextures = [this.createStateTexture(), this.createStateTexture()]
 		const fbo0 = this.gl.createFramebuffer()
 		const fbo1 = this.gl.createFramebuffer()
 		if (!fbo0 || !fbo1) throw new Error("Could not create framebuffers")
@@ -242,10 +217,26 @@ export class Automaton2DWebGL {
 			this.gl.UNSIGNED_BYTE,
 			null,
 		)
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+		this.gl.texParameteri(
+			this.gl.TEXTURE_2D,
+			this.gl.TEXTURE_MIN_FILTER,
+			this.gl.NEAREST,
+		)
+		this.gl.texParameteri(
+			this.gl.TEXTURE_2D,
+			this.gl.TEXTURE_MAG_FILTER,
+			this.gl.NEAREST,
+		)
+		this.gl.texParameteri(
+			this.gl.TEXTURE_2D,
+			this.gl.TEXTURE_WRAP_S,
+			this.gl.REPEAT,
+		)
+		this.gl.texParameteri(
+			this.gl.TEXTURE_2D,
+			this.gl.TEXTURE_WRAP_T,
+			this.gl.REPEAT,
+		)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, null)
 		return tex
 	}
@@ -267,7 +258,7 @@ export class Automaton2DWebGL {
 		this.gl.bindTexture(this.gl.TEXTURE_2D, null)
 	}
 
-	/** One CCA step on GPU: read stateTextures[readIndex], write to the other, then swap. */
+	/** One sim step on GPU: read stateTextures[readIndex], write to the other, then swap. */
 	private runSimStep(): void {
 		const writeIndex = 1 - this.readIndex
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fbos[writeIndex])
@@ -276,13 +267,12 @@ export class Automaton2DWebGL {
 		this.gl.activeTexture(this.gl.TEXTURE0)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.stateTextures[this.readIndex])
 		this.gl.uniform1i(this.gl.getUniformLocation(this.simProgram, "u_state"), 0)
-		this.gl.uniform1f(this.gl.getUniformLocation(this.simProgram, "u_colorsCount"), this.colorsCount)
-		this.gl.uniform1f(this.gl.getUniformLocation(this.simProgram, "u_threshold"), this.threshold)
 		this.gl.uniform2f(
 			this.gl.getUniformLocation(this.simProgram, "u_texelSize"),
 			1 / this.width,
 			1 / this.height,
 		)
+		this.setSimUniforms(this.simProgram)
 		const posLoc = this.gl.getAttribLocation(this.simProgram, "a_position")
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer)
 		this.gl.enableVertexAttribArray(posLoc)
@@ -299,9 +289,18 @@ export class Automaton2DWebGL {
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.stateTextures[this.readIndex])
 		this.gl.activeTexture(this.gl.TEXTURE1)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.paletteTexture)
-		this.gl.uniform1i(this.gl.getUniformLocation(this.displayProgram, "u_state"), 0)
-		this.gl.uniform1i(this.gl.getUniformLocation(this.displayProgram, "u_palette"), 1)
-		this.gl.uniform1f(this.gl.getUniformLocation(this.displayProgram, "u_colorsCount"), this.colorsCount)
+		this.gl.uniform1i(
+			this.gl.getUniformLocation(this.displayProgram, "u_state"),
+			0,
+		)
+		this.gl.uniform1i(
+			this.gl.getUniformLocation(this.displayProgram, "u_palette"),
+			1,
+		)
+		this.gl.uniform1f(
+			this.gl.getUniformLocation(this.displayProgram, "u_colorsCount"),
+			this.colorsCount,
+		)
 		const posLoc = this.gl.getAttribLocation(this.displayProgram, "a_position")
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer)
 		this.gl.enableVertexAttribArray(posLoc)

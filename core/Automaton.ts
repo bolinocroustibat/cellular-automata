@@ -3,8 +3,8 @@ import { CCA1D } from "../1d/cca"
 import { Rule30 } from "../1d/rule30"
 import { Rule90 } from "../1d/rule90"
 import { Rule110 } from "../1d/rule110"
+import { CCA2DWebGL } from "../2d-webgl"
 import { CCA2D } from "../2d/cca"
-import { Automaton2DWebGL } from "../2d/automaton2d-webgl"
 import { ConwayAutomaton } from "../2d/conway"
 import { EntropyAutomaton } from "../2d/entropy"
 import { ImmigrationAutomaton } from "../2d/immigration"
@@ -57,11 +57,11 @@ export abstract class Automaton {
 						paletteColors,
 					)
 				case "cca-2D-webgl":
-					return new Automaton2DWebGL(
+					return new CCA2DWebGL(
 						canvasEl,
 						width,
 						height,
-						settings.cca2dThreshold,
+						settings.cca2dThreshold ?? 2,
 						settings.cca2dColorsCount,
 						paletteColors,
 					)
