@@ -94,7 +94,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: sudo systemctl restart nginx.service
+          script: sudo systemctl reload nginx.service
 
       - name: Create Sentry "${{ github.ref_name }}" release
         uses: getsentry/action-release@v3
