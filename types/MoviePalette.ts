@@ -1,5 +1,3 @@
-import type { RGB } from "./RGB"
-
 export interface Movie {
 	id: number
 	title: string
@@ -21,7 +19,7 @@ export interface MoviePalette {
 	calculation_date?: string // DATETIME field
 	calculation_duration_seconds?: number
 	is_black_and_white?: boolean
-	colors: RGB[] // stored as text in DB, parsed as RGB[]
+	colors: string[] // hex colors from the API, e.g. "#29231b"
 	clusters_nb: number
 	frame_skip?: number
 	resize_width?: number

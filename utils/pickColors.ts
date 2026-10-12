@@ -1,6 +1,6 @@
 import chroma from "chroma-js"
 import type { Cell } from "../types/Cell"
-import type { RGB } from "../types/MoviePalette"
+import type { RGB } from "../types/RGB"
 
 const MOVIES_PALETTES_API = import.meta.env.VITE_MOVIES_PALETTES_API
 
