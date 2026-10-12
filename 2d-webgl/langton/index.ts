@@ -148,8 +148,12 @@ export class Langton2DWebGL extends Automaton2DWebGL {
 		}
 
 		// Move forward and wrap toroidally
-		this.antPositionX = ((this.antPositionX + this.orientationX) % this.width + this.width) % this.width
-		this.antPositionY = ((this.antPositionY + this.orientationY) % this.height + this.height) % this.height
+		this.antPositionX =
+			(((this.antPositionX + this.orientationX) % this.width) + this.width) %
+			this.width
+		this.antPositionY =
+			(((this.antPositionY + this.orientationY) % this.height) + this.height) %
+			this.height
 
 		// Copy state to the other buffer, flipping the cell at (flipTexelX, flipTexelY)
 		const writeIndex = 1 - this.readIndex
@@ -159,7 +163,10 @@ export class Langton2DWebGL extends Automaton2DWebGL {
 		this.gl.useProgram(this.copyProgram)
 		this.gl.activeTexture(this.gl.TEXTURE0)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.stateTextures[this.readIndex])
-		this.gl.uniform1i(this.gl.getUniformLocation(this.copyProgram, "u_state"), 0)
+		this.gl.uniform1i(
+			this.gl.getUniformLocation(this.copyProgram, "u_state"),
+			0,
+		)
 		this.gl.uniform2f(
 			this.gl.getUniformLocation(this.copyProgram, "u_flipCoord"),
 			flipTexelX,

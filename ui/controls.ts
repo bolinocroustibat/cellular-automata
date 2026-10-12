@@ -8,10 +8,10 @@ import {
 	pulsarPattern,
 } from "../2d/conway/patterns/oscillators"
 import {
+	gliderPattern,
 	HWSSPattern,
 	LWSSPattern,
 	MWSSPattern,
-	gliderPattern,
 } from "../2d/conway/patterns/spaceships"
 import type { Automaton } from "../core/Automaton"
 import type { Settings } from "../types/Settings"
