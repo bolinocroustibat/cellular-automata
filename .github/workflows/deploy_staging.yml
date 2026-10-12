@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     env:
-      VITE_MOVIES_PALETTES_API: "https://movies-palettes.adriencarpentier.com/api"
+      VITE_MOVIES_PALETTES_API: "https://cinematheque.adriencarpentier.com/api"
       VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       VITE_ENVIRONMENT: "staging"
     steps:
