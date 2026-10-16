@@ -9,7 +9,14 @@ import { EntropyAutomaton } from "../2d/entropy"
 import { ImmigrationAutomaton } from "../2d/immigration"
 import { LangtonAutomaton } from "../2d/langton"
 import { QuadLifeAutomaton } from "../2d/quadlife"
-import { CCA2DWebGL, Conway2DWebGL, Langton2DWebGL } from "../2d-webgl"
+import {
+	CCA2DWebGL,
+	Conway2DWebGL,
+	Entropy2DWebGL,
+	Immigration2DWebGL,
+	Langton2DWebGL,
+	QuadLife2DWebGL,
+} from "../2d-webgl"
 import { CCA3D } from "../3d/cca"
 import type { Settings } from "../types/Settings"
 import { moviePalettes } from "../utils/fetchMoviePalettes"
@@ -88,6 +95,8 @@ export abstract class Automaton {
 						undefined,
 						paletteColors,
 					)
+				case "immigration-webgl":
+					return new Immigration2DWebGL(canvasEl, width, height, paletteColors)
 				case "quadlife":
 					return new QuadLifeAutomaton(
 						canvasEl,
@@ -97,6 +106,8 @@ export abstract class Automaton {
 						undefined,
 						paletteColors,
 					)
+				case "quadlife-webgl":
+					return new QuadLife2DWebGL(canvasEl, width, height, paletteColors)
 				case "langton":
 					return new LangtonAutomaton(canvasEl, width, height, resolution)
 				case "langton-webgl":
@@ -108,6 +119,14 @@ export abstract class Automaton {
 						height,
 						resolution,
 						settings.entropyColorsCount,
+					)
+				case "entropy-webgl":
+					return new Entropy2DWebGL(
+						canvasEl,
+						width,
+						height,
+						settings.entropyColorsCount,
+						paletteColors,
 					)
 				default:
 					throw new Error(`Unknown algorithm: ${settings.algo}`)

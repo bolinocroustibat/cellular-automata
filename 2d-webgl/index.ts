@@ -1,4 +1,7 @@
 export { Automaton2DWebGL } from "./automaton2d-webgl"
 export { CCA2DWebGL } from "./cca"
 export { Conway2DWebGL } from "./conway"
+export { Entropy2DWebGL } from "./entropy"
+export { Immigration2DWebGL } from "./immigration"
 export { Langton2DWebGL } from "./langton"
+export { QuadLife2DWebGL } from "./quadlife"

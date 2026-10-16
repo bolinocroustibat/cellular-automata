@@ -40,6 +40,9 @@ Automaton2D
 Automaton2DWebGL
 ├── CCA2DWebGL
 ├── Conway2DWebGL
+├── Immigration2DWebGL
+├── QuadLife2DWebGL
+├── Entropy2DWebGL
 └── Langton2DWebGL
 Automaton3D
 └── CCA3D
@@ -64,7 +67,7 @@ Rendering:
 
 - 1D: canvas, one pixel per cell, drawn line by line
 - 2D canvas: grid of squares, resolution defaults to 5px
-- 2D WebGL: shader simulation for CCA, Conway, and Langton
+- 2D WebGL: shader simulation for CCA, Conway, Immigration, Quad Life, Entropy, and Langton
 - 3D: Three.js
 
 Colors are RGB from a palette (including movie palettes). The window resize handler calls `reset()`. Neighbor access wraps on every dimension.
@@ -127,9 +130,12 @@ The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` r
 | `conway` | ConwayAutomaton | Gliders and oscillators |
 | `conway-webgl` | Conway2DWebGL | Life on the GPU |
 | `immigration` | ImmigrationAutomaton | Life with 3 colors |
+| `immigration-webgl` | Immigration2DWebGL | Same rule, fragment shader |
 | `quadlife` | QuadLifeAutomaton | Life with 5 colors |
+| `quadlife-webgl` | QuadLife2DWebGL | Same rule, fragment shader |
 | `langton` | LangtonAutomaton | Highways after chaos |
 | `langton-webgl` | Langton2DWebGL | Ant on the GPU |
 | `entropy` | EntropyAutomaton | Color evolution |
+| `entropy-webgl` | Entropy2DWebGL | Same rule, fragment shader |
 
 1D rules are the fastest, then 2D Life variants. CCA-2D is slower. CCA-3D is the slowest because of 3D rendering.

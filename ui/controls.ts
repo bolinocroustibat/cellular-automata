@@ -90,10 +90,13 @@ export class Controls {
 					"Conway's Game of Life": "conway",
 					"Conway's Game of Life (WebGL)": "conway-webgl",
 					"Immigration game": "immigration",
+					"Immigration game (WebGL)": "immigration-webgl",
 					"Quad-Life": "quadlife",
+					"Quad-Life (WebGL)": "quadlife-webgl",
 					"Langton's ant": "langton",
 					"Langton's ant (WebGL)": "langton-webgl",
 					"2 dimensions Entropy Automaton": "entropy",
+					"2 dimensions Entropy Automaton (WebGL)": "entropy-webgl",
 				},
 			},
 		)
@@ -296,7 +299,9 @@ export class Controls {
 				case "conway":
 				case "conway-webgl":
 				case "immigration":
+				case "immigration-webgl":
 				case "quadlife":
+				case "quadlife-webgl":
 					this.automaton.start(25, 12000)
 					break
 				case "langton":
@@ -304,6 +309,7 @@ export class Controls {
 					this.automaton.start(3, 12000)
 					break
 				case "entropy":
+				case "entropy-webgl":
 					this.automaton.start(25, 2500)
 					break
 			}
@@ -342,8 +348,14 @@ export class Controls {
 			case "immigration":
 				this.setImmigrationBlades()
 				break
+			case "immigration-webgl":
+				this.setImmigrationWebglBlades()
+				break
 			case "quadlife":
 				this.setQuadLifeBlades()
+				break
+			case "quadlife-webgl":
+				this.setQuadLifeWebglBlades()
 				break
 			case "langton":
 				this.setLangtonBlades()
@@ -353,6 +365,9 @@ export class Controls {
 				break
 			case "entropy":
 				this.setEntropyBlades()
+				break
+			case "entropy-webgl":
+				this.setEntropyWebglBlades()
 				break
 			default:
 				this.setCca2dBlades()
@@ -409,9 +424,21 @@ export class Controls {
 		this.paletteSelector.hidden = false
 	}
 
+	/** Immigration WebGL: palette only (3 fixed colors, 1 px = 1 cell). */
+	private setImmigrationWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.paletteSelector.hidden = false
+	}
+
 	private setQuadLifeBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.resolutionBlade.hidden = false
+		this.paletteSelector.hidden = false
+	}
+
+	/** QuadLife WebGL: palette only (5 fixed colors, 1 px = 1 cell). */
+	private setQuadLifeWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
 		this.paletteSelector.hidden = false
 	}
 
@@ -431,6 +458,13 @@ export class Controls {
 		for (const blade of this.blades) blade.hidden = true
 		this.entropyColorsCountBlade.hidden = false
 		this.resolutionBlade.hidden = false
+	}
+
+	/** Entropy WebGL: color count and palette, no resolution (1 px = 1 cell). */
+	private setEntropyWebglBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.entropyColorsCountBlade.hidden = false
+		this.paletteSelector.hidden = false
 	}
 
 	private setRule30Blades(): void {
