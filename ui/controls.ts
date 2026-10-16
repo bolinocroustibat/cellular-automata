@@ -85,19 +85,13 @@ export class Controls {
 					"Elementary Cellular Automaton Rule 30": "rule30",
 					"Sierpinski Triangle (Rule 90)": "rule90",
 					"Turing Complete Rule 110": "rule110",
-					"2 dimensions Cyclic Cellular Automaton": "cca-2D",
-					"2 dimensions Cyclic Cellular Automaton (WebGL)": "cca-2D-webgl",
+					"2 dimensions Cyclic Cellular Automaton": "cca-2D-webgl",
 					"3 dimensions Cyclic Cellular Automaton": "cca-3D",
-					"Conway's Game of Life": "conway",
-					"Conway's Game of Life (WebGL)": "conway-webgl",
-					"Immigration game": "immigration",
-					"Immigration game (WebGL)": "immigration-webgl",
-					"Quad-Life": "quadlife",
-					"Quad-Life (WebGL)": "quadlife-webgl",
-					"Langton's ant": "langton",
-					"Langton's ant (WebGL)": "langton-webgl",
-					"2 dimensions Entropy Automaton": "entropy",
-					"2 dimensions Entropy Automaton (WebGL)": "entropy-webgl",
+					"Conway's Game of Life": "conway-webgl",
+					"Immigration game": "immigration-webgl",
+					"Quad-Life": "quadlife-webgl",
+					"Langton's ant": "langton-webgl",
+					"2 dimensions Entropy Automaton": "entropy-webgl",
 				},
 			},
 		)
@@ -176,8 +170,9 @@ export class Controls {
 		this.clearBtn = this.pane.addButton({ title: "Clear" })
 		this.resetBtn = this.pane.addButton({ title: "Reset" })
 		this.startBtn = this.pane.addButton({
-			// After both resolution sliders (canvas, then WebGL). Hidden blades still occupy a slot.
-			index: 11,
+			// After the resolution sliders and the Conway pattern folder.
+			// Hidden blades still occupy a slot, so other algorithms keep Start above Clear.
+			index: 12,
 			title: "Start",
 		})
 
@@ -425,11 +420,12 @@ export class Controls {
 		this.clearBtn.hidden = false
 	}
 
-	/** Conway WebGL: cell size 1–4, no pattern presets. */
+	/** Conway WebGL: cell size 1–4, same pattern presets as the canvas version. */
 	private setConwayWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
+		this.conwayPatterns.hidden = false
 		this.clearBtn.hidden = false
 	}
 

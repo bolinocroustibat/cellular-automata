@@ -83,7 +83,7 @@ State layout:
 1. Add a class under `1d/`, `2d/`, `2d-webgl/`, or `3d/`, extending the base for that folder. Immigration and Quad-Life extend `ConwayAutomaton`.
 2. Implement the method that base expects: `update(line)`, `updateState()`, `getSimFragSource()`, or `update()`.
 3. Register the id in the `switch` in `core/Automaton.ts`.
-4. Add the same id to `VALID_ALGOS` in `utils/getAlgorithmFromRoute.ts` and to the Tweakpane options in `ui/controls.ts`.
+4. Add the same id to `VALID_ALGOS` in `utils/getAlgorithmFromRoute.ts`. Add it to the Tweakpane options in `ui/controls.ts` only when it is the version shown in the menu. Canvas twins of a WebGL algorithm stay registered for their URL, but they are not listed.
 5. Show algorithm-specific blades in `setBladesForAlgo` when it has its own parameters.
 
 Implement `clear()` so the interval and canvas or WebGL resources are released.
@@ -96,7 +96,7 @@ Implement `clear()` so the interval and canvas or WebGL resources are released.
 - Types: PascalCase (`Settings.ts`)
 - Strict types on parameters. Interfaces for settings. Abstract classes for bases.
 - Prefer `readonly`. Use type guards for runtime checks.
-- An unknown route falls back to `cca-2D`. Track production errors with Sentry.
+- An unknown route falls back to `cca-2D-webgl`. Track production errors with Sentry.
 - Pre-compute palettes with `pickColors`. Tune 2D resolution against update frequency.
 
 ```typescript
@@ -117,7 +117,7 @@ interface Settings {
 
 ## Algorithms
 
-The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` reads the path, lowercases it, and matches `VALID_ALGOS`. Ids that contain a capital `D` (`cca-1D`, `cca-2D`, `cca-2D-webgl`, `cca-3D`) do not survive that lowercasing, so those URLs fall back to `cca-2D`. The other ids are already lowercase and match.
+The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` reads the path and matches `VALID_ALGOS` without caring about case, so ids that contain a capital `D` still select the right algorithm. An unknown route falls back to `cca-2D-webgl`.
 
 | Id | Class | Notes |
 | --- | --- | --- |
@@ -125,8 +125,8 @@ The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` r
 | `rule30` | Rule30 | Chaotic |
 | `rule90` | Rule90 | Sierpinski / fractal |
 | `rule110` | Rule110 | Turing complete |
-| `cca-2D` | CCA2D | Spirals and waves (default) |
-| `cca-2D-webgl` | CCA2DWebGL | Same rule, fragment shader |
+| `cca-2D` | CCA2D | Spirals and waves (canvas, not listed in the menu) |
+| `cca-2D-webgl` | CCA2DWebGL | Same rule, fragment shader (default) |
 | `cca-3D` | CCA3D | Three.js |
 | `conway` | ConwayAutomaton | Gliders and oscillators |
 | `conway-webgl` | Conway2DWebGL | Life on the GPU |

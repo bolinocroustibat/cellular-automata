@@ -1,4 +1,5 @@
 import type { RGB } from "../../types/RGB"
+import { randomInt } from "../../utils/randomInt"
 import { Automaton2DWebGL } from "../automaton2d-webgl"
 
 // Simulation fragment shader (GLSL ES 3.00). Game of Life: cell is alive (1) if 3 neighbors,
@@ -44,6 +45,80 @@ export class Conway2DWebGL extends Automaton2DWebGL {
 		resolution = 2,
 	) {
 		super(canvasEl, width, height, 2, paletteColors, resolution)
+		const canvas = this.gl.canvas as HTMLCanvasElement
+		canvas.addEventListener("mousedown", (event: MouseEvent) => {
+			const cell = this.cellFromEvent(event)
+			if (!cell) return
+			const [x, y] = cell
+			this.paintCell(x, y, 1)
+		})
+	}
+
+	/** Copy the current GPU grid back into stateIds. The texture is ahead of stateIds after a step. */
+	private syncStateFromGpu(): void {
+		const gl = this.gl
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbos[this.readIndex])
+		if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+			return
+		}
+		const rgba = new Uint8Array(this.width * this.height * 4)
+		gl.readPixels(
+			0,
+			0,
+			this.width,
+			this.height,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			rgba,
+		)
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+		for (let i = 0; i < this.stateIds.length; i++) {
+			const id = Math.round((rgba[i * 4] / 255) * this.colorsCount)
+			this.stateIds[i] = Math.min(this.colorsCount - 1, Math.max(0, id))
+		}
+	}
+
+	/** Screen y grows downward, matching the canvas Conway grid. */
+	private storedIndex(x: number, yFromTop: number): number {
+		const storedY = this.height - 1 - yFromTop
+		return storedY * this.width + x
+	}
+
+	private cellFromEvent(event: MouseEvent): [number, number] | null {
+		const canvas = this.gl.canvas as HTMLCanvasElement
+		const rect = canvas.getBoundingClientRect()
+		if (rect.width === 0 || rect.height === 0) return null
+		const x = Math.floor(
+			((event.clientX - rect.left) / rect.width) * this.width,
+		)
+		const y = Math.floor(
+			((event.clientY - rect.top) / rect.height) * this.height,
+		)
+		if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null
+		return [x, y]
+	}
+
+	private paintCell(x: number, yFromTop: number, id: number): void {
+		this.syncStateFromGpu()
+		this.stateIds[this.storedIndex(x, yFromTop)] = id
+		this.uploadStateToTexture(this.stateTextures[this.readIndex])
+		this.drawDisplay()
+	}
+
+	placePatternRandomly(pattern: number[][]): void {
+		if (pattern.length === 0 || pattern[0].length === 0) return
+		if (pattern[0].length > this.width || pattern.length > this.height) return
+		this.syncStateFromGpu()
+		const posX = randomInt(0, this.width - pattern[0].length)
+		const posY = randomInt(0, this.height - pattern.length)
+		for (let y = 0; y < pattern.length; y++) {
+			for (let x = 0; x < pattern[y].length; x++) {
+				this.stateIds[this.storedIndex(posX + x, posY + y)] = pattern[y][x]
+			}
+		}
+		this.uploadStateToTexture(this.stateTextures[this.readIndex])
+		this.drawDisplay()
 	}
 
 	protected getSimFragSource(): string {

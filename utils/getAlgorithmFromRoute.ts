@@ -20,7 +20,6 @@ const VALID_ALGOS = [
 
 export function getAlgorithmFromRoute(): string {
 	const path = window.location.pathname.slice(1).toLowerCase()
-	return VALID_ALGOS.includes(path as (typeof VALID_ALGOS)[number])
-		? path
-		: "cca-2D"
+	const match = VALID_ALGOS.find((algo) => algo.toLowerCase() === path)
+	return match ?? "cca-2D-webgl"
 }
