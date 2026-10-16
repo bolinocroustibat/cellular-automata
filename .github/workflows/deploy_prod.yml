@@ -12,8 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Checkout repo
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Bump version in package.json to ${{ github.ref_name }}
         run: sed -E -i 's/"version":[[:space:]]"[0-9]+.[0-9]+.[0-9]+"/"version":\ "${{ github.ref_name }}"/g' ./package.json
