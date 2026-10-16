@@ -67,7 +67,7 @@ Rendering:
 
 - 1D: canvas, one pixel per cell, drawn line by line
 - 2D canvas: grid of squares, resolution defaults to 5px
-- 2D WebGL: shader simulation for CCA, Conway, Immigration, Quad Life, Entropy, and Langton
+- 2D WebGL: shader simulation for CCA, Conway, Immigration, Quad Life, Entropy, and Langton. Cell size is 1–4 px, default 2, except Entropy which stays at 1 px
 - 3D: Three.js
 
 Colors are RGB from a palette (including movie palettes). The window resize handler calls `reset()`. Neighbor access wraps on every dimension.
@@ -110,6 +110,7 @@ interface Settings {
   cca3dCubeDimension?: number
   entropyColorsCount?: number
   resolution?: number
+  webglResolution?: number
   palette?: string
 }
 ```

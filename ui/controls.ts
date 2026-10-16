@@ -29,6 +29,7 @@ export class Controls {
 	private algoSelector: BladeApi
 	private paletteSelector: ListApi<string | null>
 	private resolutionBlade: BladeApi
+	private webglResolutionBlade: BladeApi
 	private clearBtn: ButtonApi
 	private resetBtn: ButtonApi
 	private startBtn: ButtonApi
@@ -159,6 +160,12 @@ export class Controls {
 			{ label: "Resolution", min: 1, max: 20, step: 1 },
 		)
 
+		this.webglResolutionBlade = this.pane.addBinding(
+			{ webglResolution: 2 },
+			"webglResolution",
+			{ label: "Resolution", min: 1, max: 4, step: 1 },
+		)
+
 		this.conwayPatterns = this.pane.addFolder({
 			title: "Add patterns",
 			expanded: true,
@@ -169,7 +176,8 @@ export class Controls {
 		this.clearBtn = this.pane.addButton({ title: "Clear" })
 		this.resetBtn = this.pane.addButton({ title: "Reset" })
 		this.startBtn = this.pane.addButton({
-			index: 10,
+			// After both resolution sliders (canvas, then WebGL). Hidden blades still occupy a slot.
+			index: 11,
 			title: "Start",
 		})
 
@@ -192,6 +200,7 @@ export class Controls {
 			this.conwayPatterns,
 			this.entropyColorsCountBlade,
 			this.resolutionBlade,
+			this.webglResolutionBlade,
 			this.clearBtn,
 		]
 	}
@@ -244,6 +253,10 @@ export class Controls {
 	private setupEventListeners(): void {
 		// Add onChange handler for palette selector
 		this.paletteSelector.on("change", () => {
+			void this.onReset()
+		})
+
+		this.webglResolutionBlade.on("change", () => {
 			void this.onReset()
 		})
 
@@ -388,11 +401,12 @@ export class Controls {
 		this.paletteSelector.hidden = false
 	}
 
-	/** Same as CCA2D but without resolution (WebGL always uses 1 pixel = 1 cell). */
+	/** Same as CCA2D, with the WebGL resolution range (1–4, one cell = N pixels). */
 	private setCca2dWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.cca2dColorsCountBlade.hidden = false
 		this.cca2dThresholdBlade.hidden = false
+		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
@@ -411,9 +425,10 @@ export class Controls {
 		this.clearBtn.hidden = false
 	}
 
-	/** Conway WebGL: no resolution (1 px = 1 cell), no pattern presets. */
+	/** Conway WebGL: cell size 1–4, no pattern presets. */
 	private setConwayWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
+		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 		this.clearBtn.hidden = false
 	}
@@ -424,9 +439,10 @@ export class Controls {
 		this.paletteSelector.hidden = false
 	}
 
-	/** Immigration WebGL: palette only (3 fixed colors, 1 px = 1 cell). */
+	/** Immigration WebGL: palette and cell size (3 fixed colors). */
 	private setImmigrationWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
+		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
@@ -436,9 +452,10 @@ export class Controls {
 		this.paletteSelector.hidden = false
 	}
 
-	/** QuadLife WebGL: palette only (5 fixed colors, 1 px = 1 cell). */
+	/** QuadLife WebGL: palette and cell size (5 fixed colors). */
 	private setQuadLifeWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
+		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
@@ -447,9 +464,10 @@ export class Controls {
 		this.resolutionBlade.hidden = false
 	}
 
-	/** Langton WebGL: no resolution (1 px = 1 cell), palette for 2 colors. */
+	/** Langton WebGL: cell size 1–4, palette for 2 colors. */
 	private setLangtonWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
+		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 		this.clearBtn.hidden = false
 	}
@@ -460,7 +478,7 @@ export class Controls {
 		this.resolutionBlade.hidden = false
 	}
 
-	/** Entropy WebGL: color count and palette, no resolution (1 px = 1 cell). */
+	/** Entropy WebGL: color count and palette. Cell size stays 1 px. */
 	private setEntropyWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.entropyColorsCountBlade.hidden = false

@@ -16,16 +16,19 @@ void main() {
 // Display fragment shader (GLSL ES 3.00): samples the state texture (R channel = color id in [0,1]),
 // decodes the id, looks up RGB in the 1D palette texture. Flips v_uv.y so that
 // state row 0 appears at the top of the screen (same as Canvas 2D).
+// Snaps to cell centers so each cell covers an integer block of screen pixels.
 const DISPLAY_FRAG = `#version 300 es
 precision highp float;
 uniform sampler2D u_state;
 uniform sampler2D u_palette;
 uniform float u_colorsCount;
+uniform vec2 u_gridSize;
 in vec2 v_uv;
 out vec4 out_color;
 void main() {
   vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
-  float v = texture(u_state, uv).r;
+  vec2 cell = (floor(uv * u_gridSize) + 0.5) / u_gridSize;
+  float v = texture(u_state, cell).r;
   float id = floor(v * u_colorsCount + 0.5);
   float u = (id + 0.5) / u_colorsCount;
   out_color = vec4(texture(u_palette, vec2(u, 0.5)).rgb, 1.0);
@@ -125,15 +128,27 @@ function stateIdsToRgbaUpload(
 	return rgba
 }
 
+/** Cell size in screen pixels. WebGL resolution stays in 1–4. */
+function clampCellSize(resolution: number): number {
+	const rounded = Math.round(resolution)
+	if (!Number.isFinite(rounded) || rounded < 1) return 1
+	if (rounded > 4) return 4
+	return rounded
+}
+
 /**
  * Abstract base for 2D WebGL automatons. Subclasses provide the simulation shader via
  * getSimFragSource() and optional algorithm-specific uniforms via setSimUniforms().
- * Resolution is always 1 (one pixel per cell).
+ * The simulation grid is one cell per texel. Resolution is the cell size in screen pixels (1–4).
  */
 export abstract class Automaton2DWebGL {
 	protected gl: WebGL2RenderingContext
+	/** Grid size in cells. Simulation textures and steps use these, not screen pixels. */
 	protected width: number
 	protected height: number
+	protected resolution: number
+	private displayWidth: number
+	private displayHeight: number
 	protected displayProgram: WebGLProgram
 	protected simProgram: WebGLProgram
 	protected quadBuffer: WebGLBuffer
@@ -158,16 +173,23 @@ export abstract class Automaton2DWebGL {
 		height: number,
 		colorsCount: number,
 		paletteColors?: RGB[],
+		resolution = 2,
 	) {
 		const gl = canvasEl.getContext("webgl2")
 		if (!gl) throw new Error("WebGL2 not supported")
 		this.gl = gl
 
-		this.width = width
-		this.height = height
+		this.resolution = clampCellSize(resolution)
+		this.displayWidth = width - (width % this.resolution)
+		this.displayHeight = height - (height % this.resolution)
+		if (this.displayWidth < this.resolution) this.displayWidth = this.resolution
+		if (this.displayHeight < this.resolution)
+			this.displayHeight = this.resolution
+		this.width = this.displayWidth / this.resolution
+		this.height = this.displayHeight / this.resolution
 		this.colorsCount = colorsCount
-		canvasEl.width = width
-		canvasEl.height = height
+		canvasEl.width = this.displayWidth
+		canvasEl.height = this.displayHeight
 		canvasEl.style.margin = "auto"
 
 		this.colors = pickColors(this.colorsCount, paletteColors)
@@ -288,7 +310,7 @@ export abstract class Automaton2DWebGL {
 
 	protected drawDisplay(): void {
 		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-		this.gl.viewport(0, 0, this.width, this.height)
+		this.gl.viewport(0, 0, this.displayWidth, this.displayHeight)
 		this.gl.useProgram(this.displayProgram)
 		this.gl.activeTexture(this.gl.TEXTURE0)
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.stateTextures[this.readIndex])
@@ -305,6 +327,11 @@ export abstract class Automaton2DWebGL {
 		this.gl.uniform1f(
 			this.gl.getUniformLocation(this.displayProgram, "u_colorsCount"),
 			this.colorsCount,
+		)
+		this.gl.uniform2f(
+			this.gl.getUniformLocation(this.displayProgram, "u_gridSize"),
+			this.width,
+			this.height,
 		)
 		const posLoc = this.gl.getAttribLocation(this.displayProgram, "a_position")
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer)

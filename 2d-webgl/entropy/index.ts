@@ -80,7 +80,7 @@ export class Entropy2DWebGL extends Automaton2DWebGL {
 		colorsCount?: number,
 		paletteColors?: RGB[],
 	) {
-		super(canvasEl, width, height, colorsCount ?? 4, paletteColors)
+		super(canvasEl, width, height, colorsCount ?? 4, paletteColors, 1)
 	}
 
 	protected getSimFragSource(): string {

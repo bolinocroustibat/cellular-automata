@@ -9,4 +9,5 @@ export interface Settings {
 	cca3dCubeDimension?: number
 	entropyColorsCount?: number
 	resolution?: number
+	webglResolution?: number
 }

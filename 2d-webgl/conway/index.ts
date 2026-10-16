@@ -41,8 +41,9 @@ export class Conway2DWebGL extends Automaton2DWebGL {
 		width: number,
 		height: number,
 		paletteColors?: RGB[],
+		resolution = 2,
 	) {
-		super(canvasEl, width, height, 2, paletteColors)
+		super(canvasEl, width, height, 2, paletteColors, resolution)
 	}
 
 	protected getSimFragSource(): string {

@@ -34,6 +34,7 @@ export abstract class Automaton {
 	): Promise<Automaton> {
 		try {
 			const resolution: number = settings.resolution || 5
+			const webglResolution: number = settings.webglResolution || 2
 			const paletteColors = settings.palette
 				? moviePalettes.get(settings.palette)?.colors
 				: undefined
@@ -71,6 +72,7 @@ export abstract class Automaton {
 						settings.cca2dThreshold ?? 2,
 						settings.cca2dColorsCount,
 						paletteColors,
+						webglResolution,
 					)
 				case "cca-3D":
 					return new CCA3D(
@@ -85,7 +87,13 @@ export abstract class Automaton {
 				case "conway":
 					return new ConwayAutomaton(canvasEl, width, height, resolution)
 				case "conway-webgl":
-					return new Conway2DWebGL(canvasEl, width, height, paletteColors)
+					return new Conway2DWebGL(
+						canvasEl,
+						width,
+						height,
+						paletteColors,
+						webglResolution,
+					)
 				case "immigration":
 					return new ImmigrationAutomaton(
 						canvasEl,
@@ -96,7 +104,13 @@ export abstract class Automaton {
 						paletteColors,
 					)
 				case "immigration-webgl":
-					return new Immigration2DWebGL(canvasEl, width, height, paletteColors)
+					return new Immigration2DWebGL(
+						canvasEl,
+						width,
+						height,
+						paletteColors,
+						webglResolution,
+					)
 				case "quadlife":
 					return new QuadLifeAutomaton(
 						canvasEl,
@@ -107,11 +121,23 @@ export abstract class Automaton {
 						paletteColors,
 					)
 				case "quadlife-webgl":
-					return new QuadLife2DWebGL(canvasEl, width, height, paletteColors)
+					return new QuadLife2DWebGL(
+						canvasEl,
+						width,
+						height,
+						paletteColors,
+						webglResolution,
+					)
 				case "langton":
 					return new LangtonAutomaton(canvasEl, width, height, resolution)
 				case "langton-webgl":
-					return new Langton2DWebGL(canvasEl, width, height, paletteColors)
+					return new Langton2DWebGL(
+						canvasEl,
+						width,
+						height,
+						paletteColors,
+						webglResolution,
+					)
 				case "entropy":
 					return new EntropyAutomaton(
 						canvasEl,
