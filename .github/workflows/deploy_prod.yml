@@ -39,11 +39,10 @@ jobs:
     needs: bump-version
     steps:
 
-      - name: Checkout repo
+      - name: Checkout main after bump
         uses: actions/checkout@v4
-
-      - name: Pull latest changes
-        run: git pull origin main
+        with:
+          ref: main
 
       - name: Cache Bun dependencies
         uses: actions/cache@v4
