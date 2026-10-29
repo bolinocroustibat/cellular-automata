@@ -76,7 +76,7 @@ State layout:
 
 - 1D: `Cell[]`
 - 2D: `Cell[][]` as `state[y][x]`
-- 3D: `Cell3D[][][]`
+- 3D: flat `Uint8Array` of color ids, `index = x + y * N + z * N²`, drawn as one `InstancedMesh`
 
 ## Adding an algorithm
 

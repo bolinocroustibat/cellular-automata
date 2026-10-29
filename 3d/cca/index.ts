@@ -1,6 +1,4 @@
-import type { Cell } from "../../types/Cell"
 import type { RGB } from "../../types/RGB"
-import { nextCellColorId } from "../../utils/nextCellColorId"
 import { Automaton3D } from "../automaton3d"
 
 export class CCA3D extends Automaton3D {
@@ -19,47 +17,50 @@ export class CCA3D extends Automaton3D {
 		this.threshold = threshold
 	}
 
-	protected update = (): void => {
-		for (let z = 0; z < this.cubeDimension; z++) {
-			for (let y = 0; y < this.cubeDimension; y++) {
-				for (let x = 0; x < this.cubeDimension; x++) {
-					const currentCell = this.state[z][y][x]
-					const nextColorId = nextCellColorId(currentCell, this.colors)
-					const successorNeighboursCount = this.getNeighbours(x, y, z).filter(
-						(neighbour) => neighbour.id === nextColorId,
-					).length
+	protected update(): void {
+		const n = this.cubeDimension
+		const plane = n * n
+		const colorsCount = this.colors.length
+		const state = this.state
+		// Wrapped offsets of the previous, current and next slice on each axis.
+		const zs = new Int32Array(3)
+		const ys = new Int32Array(3)
+		const xs = new Int32Array(3)
 
-					if (successorNeighboursCount >= this.threshold) {
-						const newColor = this.colorMap.get(nextColorId) ?? currentCell
+		for (let z = 0; z < n; z++) {
+			zs[0] = ((z + n - 1) % n) * plane
+			zs[1] = z * plane
+			zs[2] = ((z + 1) % n) * plane
+			for (let y = 0; y < n; y++) {
+				ys[0] = ((y + n - 1) % n) * n
+				ys[1] = y * n
+				ys[2] = ((y + 1) % n) * n
+				for (let x = 0; x < n; x++) {
+					xs[0] = (x + n - 1) % n
+					xs[1] = x
+					xs[2] = (x + 1) % n
 
-						this.bufferState[z][y][x] = {
-							...newColor,
-							mesh: currentCell.mesh,
+					const i = zs[1] + ys[1] + x
+					const current = state[i]
+					const next = current + 1 >= colorsCount ? 0 : current + 1
+
+					let successorNeighboursCount = 0
+					for (let dz = 0; dz < 3; dz++) {
+						for (let dy = 0; dy < 3; dy++) {
+							const row = zs[dz] + ys[dy]
+							for (let dx = 0; dx < 3; dx++) {
+								if (dz === 1 && dy === 1 && dx === 1) continue
+								if (state[row + xs[dx]] === next) successorNeighboursCount++
+							}
 						}
-
-						if (newColor.id !== currentCell.id && currentCell.mesh) {
-							this.updateCellColor(currentCell.mesh, newColor.colorRgb)
-						}
-					} else {
-						this.bufferState[z][y][x] = currentCell
 					}
-				}
-			}
-		}
-		;[this.state, this.bufferState] = [this.bufferState, this.state]
-	}
 
-	private getNeighbours(x: number, y: number, z: number): Cell[] {
-		const neighbours: Cell[] = []
-		const offsets = [-1, 0, 1]
-		for (const dz of offsets) {
-			for (const dy of offsets) {
-				for (const dx of offsets) {
-					if (dx === 0 && dy === 0 && dz === 0) continue
-					neighbours.push(this.getCellColor(x + dx, y + dy, z + dz))
+					this.bufferState[i] =
+						successorNeighboursCount >= this.threshold ? next : current
 				}
 			}
 		}
-		return neighbours
+
+		this.commitState()
 	}
 }
