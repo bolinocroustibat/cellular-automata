@@ -125,6 +125,12 @@ export class Controls {
 			{ label: "Threshold", min: 1, max: 3, step: 1 },
 		)
 
+		this.cca3dCubeDimensionBlade = this.pane.addBinding(
+			{ cca3dCubeDimension: 30 },
+			"cca3dCubeDimension",
+			{ label: "3D cube size", min: 20, max: 100, step: 1 },
+		)
+
 		this.cca3dColorsCountBlade = this.pane.addBinding(
 			{ cca3dColorsCount: 5 },
 			"cca3dColorsCount",
@@ -135,12 +141,6 @@ export class Controls {
 			{ cca3dThreshold: 4 },
 			"cca3dThreshold",
 			{ label: "Threshold", min: 4, max: 10, step: 1 },
-		)
-
-		this.cca3dCubeDimensionBlade = this.pane.addBinding(
-			{ cca3dCubeDimension: 30 },
-			"cca3dCubeDimension",
-			{ label: "3D cube size", min: 20, max: 100, step: 1 },
 		)
 
 		this.entropyColorsCountBlade = this.pane.addBinding(
