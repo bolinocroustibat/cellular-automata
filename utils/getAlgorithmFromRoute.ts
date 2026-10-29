@@ -13,6 +13,7 @@ const VALID_ALGOS = [
 	"langton-webgl",
 	"entropy",
 	"entropy-webgl",
+	"entropy-3D",
 	"rule30",
 	"rule90",
 	"rule110",

@@ -18,6 +18,7 @@ import {
 	QuadLife2DWebGL,
 } from "../2d-webgl"
 import { CCA3D } from "../3d/cca"
+import { Entropy3D } from "../3d/entropy"
 import type { Settings } from "../types/Settings"
 import { moviePalettes } from "../utils/fetchMoviePalettes"
 
@@ -151,6 +152,15 @@ export abstract class Automaton {
 						width,
 						height,
 						settings.entropyColorsCount,
+						paletteColors,
+					)
+				case "entropy-3D":
+					return new Entropy3D(
+						canvasEl,
+						width,
+						height,
+						settings.cca3dCubeDimension ?? 30,
+						settings.entropyColorsCount ?? 4,
 						paletteColors,
 					)
 				default:

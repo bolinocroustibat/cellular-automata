@@ -81,17 +81,18 @@ export class Controls {
 				index: 1,
 				label: "Algorithm",
 				options: {
-					"1 dimension Cyclic Cellular Automaton": "cca-1D",
-					"Elementary Cellular Automaton Rule 30": "rule30",
-					"Sierpinski Triangle (Rule 90)": "rule90",
-					"Turing Complete Rule 110": "rule110",
-					"2 dimensions Cyclic Cellular Automaton": "cca-2D-webgl",
-					"3 dimensions Cyclic Cellular Automaton": "cca-3D",
-					"Conway's Game of Life": "conway-webgl",
-					"Immigration game": "immigration-webgl",
-					"Quad-Life": "quadlife-webgl",
-					"Langton's ant": "langton-webgl",
-					"2 dimensions Entropy Automaton": "entropy-webgl",
+					"1D Cyclic Cellular Automaton": "cca-1D",
+					"1D Elementary Cellular Automaton Rule 30": "rule30",
+					"1D Sierpinski Triangle (Rule 90)": "rule90",
+					"1D Turing Complete Rule 110": "rule110",
+					"2D Cyclic Cellular Automaton": "cca-2D-webgl",
+					"2D Conway's Game of Life": "conway-webgl",
+					"2D Immigration game": "immigration-webgl",
+					"2D Quad-Life": "quadlife-webgl",
+					"2D Langton's ant": "langton-webgl",
+					"2D Entropy Automaton": "entropy-webgl",
+					"3D Cyclic Cellular Automaton": "cca-3D",
+					"3D Entropy Automaton": "entropy-3D",
 				},
 			},
 		)
@@ -302,6 +303,7 @@ export class Controls {
 					this.automaton.start(25, 2500)
 					break
 				case "cca-3D":
+				case "entropy-3D":
 					this.automaton.start(12)
 					break
 				case "conway":
@@ -376,6 +378,9 @@ export class Controls {
 				break
 			case "entropy-webgl":
 				this.setEntropyWebglBlades()
+				break
+			case "entropy-3D":
+				this.setEntropy3dBlades()
 				break
 			default:
 				this.setCca2dBlades()
@@ -475,6 +480,14 @@ export class Controls {
 	private setEntropyWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.entropyColorsCountBlade.hidden = false
+		this.paletteSelector.hidden = false
+	}
+
+	/** Entropy 3D: color count, palette and cube size. */
+	private setEntropy3dBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.entropyColorsCountBlade.hidden = false
+		this.cca3dCubeDimensionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 

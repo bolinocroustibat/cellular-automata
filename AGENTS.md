@@ -45,7 +45,8 @@ Automaton2DWebGL
 ├── Entropy2DWebGL
 └── Langton2DWebGL
 Automaton3D
-└── CCA3D
+├── CCA3D
+└── Entropy3D
 ```
 
 Each base owns setup, state, and the animation loop. Subclasses implement:
@@ -138,5 +139,6 @@ The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` r
 | `langton-webgl` | Langton2DWebGL | Ant on the GPU |
 | `entropy` | EntropyAutomaton | Color evolution |
 | `entropy-webgl` | Entropy2DWebGL | Same rule, fragment shader |
+| `entropy-3D` | Entropy3D | Same rule on 26 neighbors, Three.js |
 
 1D rules are the fastest, then 2D Life variants. CCA-2D is slower. CCA-3D is the slowest because of 3D rendering.
