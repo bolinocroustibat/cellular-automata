@@ -33,7 +33,7 @@ export abstract class Automaton {
 		settings: Settings,
 	): Promise<Automaton> {
 		try {
-			const resolution: number = settings.resolution || 5
+			const resolution: number = settings.resolution || 2
 			const webglResolution: number = settings.webglResolution || 2
 			const paletteColors = settings.palette
 				? moviePalettes.get(settings.palette)?.colors
@@ -60,7 +60,7 @@ export abstract class Automaton {
 						canvasEl,
 						width,
 						height,
-						resolution,
+						1,
 						settings.cca2dColorsCount,
 						paletteColors,
 					)
@@ -72,14 +72,13 @@ export abstract class Automaton {
 						settings.cca2dThreshold ?? 2,
 						settings.cca2dColorsCount,
 						paletteColors,
-						webglResolution,
 					)
 				case "cca-3D":
 					return new CCA3D(
 						canvasEl,
 						width,
 						height,
-						settings.cca3dCubeDimension,
+						settings.cca3dCubeDimension ?? 30,
 						settings.cca3dThreshold,
 						settings.cca3dColorsCount,
 						paletteColors,
@@ -143,7 +142,7 @@ export abstract class Automaton {
 						canvasEl,
 						width,
 						height,
-						resolution,
+						1,
 						settings.entropyColorsCount,
 					)
 				case "entropy-webgl":

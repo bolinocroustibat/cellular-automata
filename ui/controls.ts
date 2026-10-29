@@ -137,9 +137,9 @@ export class Controls {
 		)
 
 		this.cca3dCubeDimensionBlade = this.pane.addBinding(
-			{ cca3dCubeDimension: 15 },
+			{ cca3dCubeDimension: 30 },
 			"cca3dCubeDimension",
-			{ label: "3D cube size", min: 5, max: 30, step: 1 },
+			{ label: "3D cube size", min: 20, max: 100, step: 1 },
 		)
 
 		this.entropyColorsCountBlade = this.pane.addBinding(
@@ -149,7 +149,7 @@ export class Controls {
 		)
 
 		this.resolutionBlade = this.pane.addBinding(
-			{ resolution: 5 },
+			{ resolution: 2 },
 			"resolution",
 			{ label: "Resolution", min: 1, max: 20, step: 1 },
 		)
@@ -392,16 +392,14 @@ export class Controls {
 		for (const blade of this.blades) blade.hidden = true
 		this.cca2dColorsCountBlade.hidden = false
 		this.cca2dThresholdBlade.hidden = false
-		this.resolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
-	/** Same as CCA2D, with the WebGL resolution range (1–4, one cell = N pixels). */
+	/** Same blades as CCA2D. */
 	private setCca2dWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.cca2dColorsCountBlade.hidden = false
 		this.cca2dThresholdBlade.hidden = false
-		this.webglResolutionBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 
@@ -471,7 +469,6 @@ export class Controls {
 	private setEntropyBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.entropyColorsCountBlade.hidden = false
-		this.resolutionBlade.hidden = false
 	}
 
 	/** Entropy WebGL: color count and palette. Cell size stays 1 px. */

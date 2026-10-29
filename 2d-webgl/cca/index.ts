@@ -44,9 +44,8 @@ export class CCA2DWebGL extends Automaton2DWebGL {
 		threshold: number,
 		colorsCount?: number,
 		paletteColors?: RGB[],
-		resolution = 2,
 	) {
-		super(canvasEl, width, height, colorsCount ?? 8, paletteColors, resolution)
+		super(canvasEl, width, height, colorsCount ?? 8, paletteColors)
 		this.threshold = threshold
 	}
 

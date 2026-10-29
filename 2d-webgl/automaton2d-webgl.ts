@@ -173,7 +173,7 @@ export abstract class Automaton2DWebGL {
 		height: number,
 		colorsCount: number,
 		paletteColors?: RGB[],
-		resolution = 2,
+		resolution = 1,
 	) {
 		const gl = canvasEl.getContext("webgl2")
 		if (!gl) throw new Error("WebGL2 not supported")

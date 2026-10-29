@@ -67,7 +67,7 @@ window.onload = async () => {
 			algo: initialAlgo,
 			cca2dColorsCount: 8,
 			cca2dThreshold: 2, // Add default threshold
-			resolution: 5,
+			resolution: 2,
 		},
 	)
 	controls = new Controls(automaton, reset)

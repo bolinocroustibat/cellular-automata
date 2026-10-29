@@ -66,8 +66,8 @@ Data flow:
 Rendering:
 
 - 1D: canvas, one pixel per cell, drawn line by line
-- 2D canvas: grid of squares, resolution defaults to 5px
-- 2D WebGL: shader simulation for CCA, Conway, Immigration, Quad Life, Entropy, and Langton. Cell size is 1–4 px, default 2, except Entropy which stays at 1 px
+- 2D canvas: grid of squares. Conway, Immigration, Quad Life, and Langton have a resolution slider (default 2px); CCA and Entropy use one cell per pixel
+- 2D WebGL: shader simulation for CCA, Conway, Immigration, Quad Life, Entropy, and Langton. Conway, Immigration, Quad Life, and Langton have a cell size slider (1–4 px, default 2); CCA and Entropy use one cell per pixel
 - 3D: Three.js
 
 Colors are RGB from a palette (including movie palettes). The window resize handler calls `reset()`. Neighbor access wraps on every dimension.
@@ -97,7 +97,7 @@ Implement `clear()` so the interval and canvas or WebGL resources are released.
 - Strict types on parameters. Interfaces for settings. Abstract classes for bases.
 - Prefer `readonly`. Use type guards for runtime checks.
 - An unknown route falls back to `cca-2D-webgl`. Track production errors with Sentry.
-- Pre-compute palettes with `pickColors`. Tune 2D resolution against update frequency.
+- Pre-compute palettes with `pickColors`.
 
 ```typescript
 interface Settings {
