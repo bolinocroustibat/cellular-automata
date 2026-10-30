@@ -19,13 +19,19 @@ export abstract class Automaton3D {
 	protected bufferState!: Uint8Array
 	/** Color per id in the renderer's working color space, three floats per id. */
 	private readonly paletteRgb: Float32Array
+	/** 1 when cells of that color id are drawn, from isVisible(). */
+	private readonly visibleById: Uint8Array
+	/** True when every color id is drawn: instances then map one to one to cells. */
+	private readonly allVisible: boolean
+	/** Translation of each cell, three floats per cell, used to pack visible cells. */
+	private positions!: Float32Array
 	private initialRotationSpeed: number
 	private rotationDirectionX: number
 	private rotationDirectionY: number
 	private rotationDirectionZ: number
 	protected scene: THREE.Scene
 	protected cellGroup: THREE.Group
-	/** One instance per cell: a single draw call for the whole cube. */
+	/** One instance per drawn cell: a single draw call for the whole cube. */
 	protected cells!: THREE.InstancedMesh
 	protected camera: THREE.PerspectiveCamera
 	protected controls: OrbitControls
@@ -63,6 +69,10 @@ export abstract class Automaton3D {
 			color.setRGB(colorRgb[0] / 255, colorRgb[1] / 255, colorRgb[2] / 255)
 			color.toArray(this.paletteRgb, id * 3)
 		}
+		this.visibleById = Uint8Array.from(this.colors, ({ id }) =>
+			this.isVisible(id) ? 1 : 0,
+		)
+		this.allVisible = this.visibleById.every((visible) => visible === 1)
 
 		this.scene = new THREE.Scene()
 		this.cellGroup = new THREE.Group()
@@ -168,8 +178,26 @@ export abstract class Automaton3D {
 	/** Write the next generation into bufferState, then call commitState(). */
 	protected abstract update(): void
 
-	/** Recolor the cells that changed, then make bufferState the current state. */
+	/**
+	 * Whether cells of this color id are drawn. Called once from the base constructor, so it must
+	 * not depend on subclass fields. Default: every color is drawn.
+	 */
+	protected isVisible(_id: number): boolean {
+		return true
+	}
+
+	/** Opacity of every cell. Called from the base constructor, like isVisible(). */
+	protected getCellOpacity(): number {
+		return 0.1
+	}
+
+	/** Make bufferState the current state and update the instances to match. */
 	protected commitState(): void {
+		if (!this.allVisible) {
+			;[this.state, this.bufferState] = [this.bufferState, this.state]
+			this.packVisibleCells()
+			return
+		}
 		const instanceColor = this.cells.instanceColor
 		if (!instanceColor) return
 		const rgb = instanceColor.array as Float32Array
@@ -185,6 +213,53 @@ export abstract class Automaton3D {
 		if (changed) instanceColor.needsUpdate = true
 	}
 
+	/** Rebuild every instance from state, for subclasses that rewrite the state outside update(). */
+	protected refreshInstances(): void {
+		if (!this.allVisible) {
+			this.packVisibleCells()
+			return
+		}
+		const instanceColor = this.cells.instanceColor
+		if (!instanceColor) return
+		const rgb = instanceColor.array as Float32Array
+		for (let i = 0; i < this.state.length; i++) {
+			const id = this.state[i]
+			rgb.set(this.paletteRgb.subarray(id * 3, id * 3 + 3), i * 3)
+		}
+		instanceColor.needsUpdate = true
+	}
+
+	/**
+	 * Write only the visible cells into the first instances and draw that many. Every instance
+	 * matrix is a pure translation, so only its translation column changes.
+	 */
+	private packVisibleCells(): void {
+		const instanceColor = this.cells.instanceColor
+		if (!instanceColor) return
+		const matrices = this.cells.instanceMatrix.array as Float32Array
+		const rgb = instanceColor.array as Float32Array
+		let count = 0
+		for (let i = 0; i < this.state.length; i++) {
+			const id = this.state[i]
+			if (this.visibleById[id] === 0) continue
+			matrices[count * 16 + 12] = this.positions[i * 3]
+			matrices[count * 16 + 13] = this.positions[i * 3 + 1]
+			matrices[count * 16 + 14] = this.positions[i * 3 + 2]
+			rgb.set(this.paletteRgb.subarray(id * 3, id * 3 + 3), count * 3)
+			count++
+		}
+		this.cells.count = count
+		// Upload only the instances in use.
+		this.cells.instanceMatrix.clearUpdateRanges()
+		instanceColor.clearUpdateRanges()
+		if (count > 0) {
+			this.cells.instanceMatrix.addUpdateRange(0, count * 16)
+			instanceColor.addUpdateRange(0, count * 3)
+		}
+		this.cells.instanceMatrix.needsUpdate = true
+		instanceColor.needsUpdate = true
+	}
+
 	protected setInitialState = (): void => {
 		const n = this.cubeDimension
 		const count = n * n * n
@@ -195,30 +270,39 @@ export abstract class Automaton3D {
 		const geometry = new THREE.BoxGeometry(size, size, size)
 		const material = new THREE.MeshBasicMaterial({
 			transparent: true,
-			opacity: 0.1,
+			opacity: this.getCellOpacity(),
 			depthWrite: false,
 		})
 		this.cells = new THREE.InstancedMesh(geometry, material, count)
-		const rgb = new Float32Array(count * 3)
-		this.cells.instanceColor = new THREE.InstancedBufferAttribute(rgb, 3)
+		this.cells.instanceColor = new THREE.InstancedBufferAttribute(
+			new Float32Array(count * 3),
+			3,
+		)
+		// The drawn instances change with the state, so a bounding sphere computed once would go stale.
+		this.cells.frustumCulled = false
 
+		this.positions = new Float32Array(count * 3)
 		const matrix = new THREE.Matrix4()
 		for (let z = 0; z < n; z++) {
 			for (let y = 0; y < n; y++) {
 				for (let x = 0; x < n; x++) {
 					const i = x + y * n + z * n * n
-					const id = Math.floor(Math.random() * this.colors.length)
-					this.state[i] = id
-					rgb.set(this.paletteRgb.subarray(id * 3, id * 3 + 3), i * 3)
+					this.state[i] = Math.floor(Math.random() * this.colors.length)
+					this.positions[i * 3] = (x - this.halfCubeDimension) * this.cellSize
+					this.positions[i * 3 + 1] =
+						(y - this.halfCubeDimension) * this.cellSize
+					this.positions[i * 3 + 2] =
+						(z - this.halfCubeDimension) * this.cellSize
 					matrix.makeTranslation(
-						(x - this.halfCubeDimension) * this.cellSize,
-						(y - this.halfCubeDimension) * this.cellSize,
-						(z - this.halfCubeDimension) * this.cellSize,
+						this.positions[i * 3],
+						this.positions[i * 3 + 1],
+						this.positions[i * 3 + 2],
 					)
 					this.cells.setMatrixAt(i, matrix)
 				}
 			}
 		}
+		this.refreshInstances()
 
 		this.cellGroup.add(this.cells)
 	}

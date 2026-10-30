@@ -13,10 +13,12 @@ import {
 	LWSSPattern,
 	MWSSPattern,
 } from "../2d/conway/patterns/spaceships"
+import { CONWAY_3D_RULES } from "../3d/conway"
 import type { Automaton } from "../core/Automaton"
 import type { Settings } from "../types/Settings"
 import { fetchMoviePalettes } from "../utils/fetchMoviePalettes"
 import { getAlgorithmFromRoute } from "../utils/getAlgorithmFromRoute"
+import { parseLifeRule } from "../utils/parseLifeRule"
 
 const MOVIES_PALETTES_API = import.meta.env.VITE_MOVIES_PALETTES_API
 
@@ -48,6 +50,14 @@ export class Controls {
 
 	// Conway controls
 	private conwayPatterns: FolderApi
+
+	// Conway 3D controls
+	private conway3dRuleBlade: BladeApi
+	private conway3dCustomRuleBlade: BladeApi
+	private readonly conway3dCustomRule = {
+		conway3dCustomRule: CONWAY_3D_RULES[0] as string,
+	}
+	private conway3dDensityBlade: BladeApi
 
 	// Entropy controls
 	private entropyColorsCountBlade: BladeApi
@@ -93,6 +103,7 @@ export class Controls {
 					"2D Entropy Automaton": "entropy-webgl",
 					"3D Cyclic Cellular Automaton": "cca-3D",
 					"3D Entropy Automaton": "entropy-3D",
+					"3D Conway's Game of Life": "conway-3D",
 				},
 			},
 		)
@@ -129,6 +140,30 @@ export class Controls {
 			{ cca3dCubeDimension: 30 },
 			"cca3dCubeDimension",
 			{ label: "3D cube size", min: 20, max: 100, step: 1 },
+		)
+
+		this.conway3dRuleBlade = this.pane.addBinding(
+			{ conway3dRule: CONWAY_3D_RULES[0] as string },
+			"conway3dRule",
+			{
+				label: "Rule",
+				options: {
+					...Object.fromEntries(CONWAY_3D_RULES.map((rule) => [rule, rule])),
+					Custom: "custom",
+				},
+			},
+		)
+
+		this.conway3dCustomRuleBlade = this.pane.addBinding(
+			this.conway3dCustomRule,
+			"conway3dCustomRule",
+			{ label: "Custom rule" },
+		)
+
+		this.conway3dDensityBlade = this.pane.addBinding(
+			{ conway3dDensity: 0.15 },
+			"conway3dDensity",
+			{ label: "Initial density", min: 0.05, max: 0.5, step: 0.01 },
 		)
 
 		this.cca3dColorsCountBlade = this.pane.addBinding(
@@ -173,7 +208,7 @@ export class Controls {
 		this.startBtn = this.pane.addButton({
 			// After the resolution sliders and the Conway pattern folder.
 			// Hidden blades still occupy a slot, so other algorithms keep Start above Clear.
-			index: 12,
+			index: 15,
 			title: "Start",
 		})
 
@@ -193,6 +228,9 @@ export class Controls {
 			this.cca3dColorsCountBlade,
 			this.cca3dThresholdBlade,
 			this.cca3dCubeDimensionBlade,
+			this.conway3dRuleBlade,
+			this.conway3dCustomRuleBlade,
+			this.conway3dDensityBlade,
 			this.conwayPatterns,
 			this.entropyColorsCountBlade,
 			this.resolutionBlade,
@@ -256,6 +294,22 @@ export class Controls {
 			void this.onReset()
 		})
 
+		// Show the custom rule field only when "Custom" is picked
+		this.conway3dRuleBlade.on("change", () => {
+			if (this.getSettings().algo === "conway-3D") this.setConway3dBlades()
+		})
+
+		// Keep the last valid custom rule when the text does not parse
+		let lastValidCustomRule = this.conway3dCustomRule.conway3dCustomRule
+		this.conway3dCustomRuleBlade.on("change", (event: { value: string }) => {
+			if (parseLifeRule(event.value)) {
+				lastValidCustomRule = event.value
+				return
+			}
+			this.conway3dCustomRule.conway3dCustomRule = lastValidCustomRule
+			this.conway3dCustomRuleBlade.refresh()
+		})
+
 		// Algorithm selector change handler
 		this.algoSelector.on("change", (event: { value: string }) => {
 			const newUrl = `/${event.value}`
@@ -304,6 +358,7 @@ export class Controls {
 					break
 				case "cca-3D":
 				case "entropy-3D":
+				case "conway-3D":
 					this.automaton.start(12)
 					break
 				case "conway":
@@ -381,6 +436,9 @@ export class Controls {
 				break
 			case "entropy-3D":
 				this.setEntropy3dBlades()
+				break
+			case "conway-3D":
+				this.setConway3dBlades()
 				break
 			default:
 				this.setCca2dBlades()
@@ -480,6 +538,17 @@ export class Controls {
 	private setEntropyWebglBlades(): void {
 		for (const blade of this.blades) blade.hidden = true
 		this.entropyColorsCountBlade.hidden = false
+		this.paletteSelector.hidden = false
+	}
+
+	/** Conway 3D: cube size, rule (with a text field for a custom one), initial density and palette. */
+	private setConway3dBlades(): void {
+		for (const blade of this.blades) blade.hidden = true
+		this.cca3dCubeDimensionBlade.hidden = false
+		this.conway3dRuleBlade.hidden = false
+		this.conway3dCustomRuleBlade.hidden =
+			this.getSettings().conway3dRule !== "custom"
+		this.conway3dDensityBlade.hidden = false
 		this.paletteSelector.hidden = false
 	}
 

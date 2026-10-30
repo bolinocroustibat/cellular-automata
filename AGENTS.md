@@ -46,6 +46,7 @@ Automaton2DWebGL
 └── Langton2DWebGL
 Automaton3D
 ├── CCA3D
+├── Conway3D
 └── Entropy3D
 ```
 
@@ -110,6 +111,9 @@ interface Settings {
   cca3dThreshold?: number
   cca3dCubeDimension?: number
   entropyColorsCount?: number
+  conway3dRule?: string
+  conway3dCustomRule?: string
+  conway3dDensity?: number
   resolution?: number
   webglResolution?: number
   palette?: string
@@ -140,5 +144,6 @@ The Tweakpane selector writes `/${id}` into the URL. `getAlgorithmFromRoute()` r
 | `entropy` | EntropyAutomaton | Color evolution |
 | `entropy-webgl` | Entropy2DWebGL | Same rule, fragment shader |
 | `entropy-3D` | Entropy3D | Same rule on 26 neighbors, Three.js |
+| `conway-3D` | Conway3D | Life on 26 neighbors, configurable S/B rule, dead cells hidden |
 
 1D rules are the fastest, then 2D Life variants. CCA-2D is slower. CCA-3D is the slowest because of 3D rendering.

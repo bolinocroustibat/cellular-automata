@@ -14,6 +14,7 @@ const VALID_ALGOS = [
 	"entropy",
 	"entropy-webgl",
 	"entropy-3D",
+	"conway-3D",
 	"rule30",
 	"rule90",
 	"rule110",

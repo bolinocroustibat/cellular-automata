@@ -18,6 +18,7 @@ import {
 	QuadLife2DWebGL,
 } from "../2d-webgl"
 import { CCA3D } from "../3d/cca"
+import { CONWAY_3D_RULES, Conway3D } from "../3d/conway"
 import { Entropy3D } from "../3d/entropy"
 import type { Settings } from "../types/Settings"
 import { moviePalettes } from "../utils/fetchMoviePalettes"
@@ -161,6 +162,18 @@ export abstract class Automaton {
 						height,
 						settings.cca3dCubeDimension ?? 30,
 						settings.entropyColorsCount ?? 4,
+						paletteColors,
+					)
+				case "conway-3D":
+					return new Conway3D(
+						canvasEl,
+						width,
+						height,
+						settings.cca3dCubeDimension ?? 30,
+						(settings.conway3dRule === "custom"
+							? settings.conway3dCustomRule
+							: settings.conway3dRule) ?? CONWAY_3D_RULES[0],
+						settings.conway3dDensity ?? 0.15,
 						paletteColors,
 					)
 				default:

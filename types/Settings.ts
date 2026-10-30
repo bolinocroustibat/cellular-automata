@@ -8,6 +8,10 @@ export interface Settings {
 	palette?: string
 	cca3dCubeDimension?: number
 	entropyColorsCount?: number
+	/** A rule from CONWAY_3D_RULES, or "custom" to use conway3dCustomRule. */
+	conway3dRule?: string
+	conway3dCustomRule?: string
+	conway3dDensity?: number
 	resolution?: number
 	webglResolution?: number
 }
